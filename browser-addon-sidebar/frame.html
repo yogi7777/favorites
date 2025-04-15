@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Favorites Sidebar</title>
+    <style>
+      body, html {
+        margin: 0;
+        padding: 0;
+        height: 100vh;
+        width: 100%;
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+        background-color: #1e1e1e;
+      }
+      .container {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+      }
+      .footer {
+        background-color: #1a73e8;
+        color: white;
+        padding: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .title {
+        font-size: 16px;
+        font-weight: bold;
+      }
+      .button {
+        background: none;
+        border: none;
+        color: white;
+        cursor: pointer;
+        padding: 4px;
+      }
+      .content {
+        flex: 1;
+        overflow-y: auto;
+        background-color: #1e1e1e;
+      }
+      .content::-webkit-scrollbar {
+        width: 6px;
+      }
+      .content::-webkit-scrollbar-track {
+        background: #2e2e2e;
+      }
+      .content::-webkit-scrollbar-thumb {
+        background: #555;
+        border-radius: 3px;
+      }
+      .content::-webkit-scrollbar-thumb:hover {
+        background: #777;
+      }
+      .content {
+        scrollbar-width: thin;
+        scrollbar-color: #555 #2e2e2e;
+      }
+      iframe {
+        border: none;
+        height: 100%;
+        width: 100%;
+      }
+      .hidden {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div id="content" class="content">
+        <iframe id="itcrm-iframe" src=""></iframe>
+      </div>
+    </div>
+    <script src="contentScript.js"></script>
+  </body>
+</html>

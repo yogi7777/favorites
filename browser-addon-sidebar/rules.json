@@ -1,0 +1,34 @@
+[
+    {
+      "id": 1,
+      "priority": 1,
+      "action": {
+        "type": "modifyHeaders",
+        "responseHeaders": [
+          { "header": "x-frame-options", "operation": "remove" },
+          { "header": "frame-options", "operation": "remove" },
+          { "header": "content-security-policy", "operation": "remove" },
+          { "header": "content-security-policy-report-only", "operation": "remove" }
+        ]
+      },
+      "condition": {
+        "urlFilter": "||your-url.ch",
+        "resourceTypes": ["main_frame", "sub_frame"]
+      }
+    },
+    {
+      "id": 2,
+      "priority": 2,
+      "action": {
+        "type": "modifyHeaders",
+        "requestHeaders": [
+          { "header": "sec-fetch-dest", "operation": "set", "value": "document" },
+          { "header": "sec-fetch-mode", "operation": "set", "value": "navigate" }
+        ]
+      },
+      "condition": {
+        "urlFilter": "||your-url.ch",
+        "resourceTypes": ["main_frame", "sub_frame"]
+      }
+    }
+  ]

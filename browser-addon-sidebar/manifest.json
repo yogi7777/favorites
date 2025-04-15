@@ -1,0 +1,35 @@
+{
+   "action": {
+      "default_icon": {
+         "48": "icon.png"
+      },
+      "default_title": "Favorites Sidebar"
+   },
+   "background": {
+      "service_worker": "background.js"
+   },
+   "declarative_net_request": {
+      "rule_resources": [ {
+         "enabled": true,
+         "id": "ruleset_1",
+         "path": "rules.json"
+      } ]
+   },
+   "description": "Open your-url.ch in sidebar",
+   "host_permissions": [ "https://your-url.ch/*" ],
+   "icons": {
+      "48": "icon.png"
+   },
+   "manifest_version": 3,
+   "name": "Favorites Sidebar",
+   "permissions": [ "sidePanel", "storage", "declarativeNetRequest", "declarativeNetRequestWithHostAccess" ],
+   "short_name": "Favorites",
+   "side_panel": {
+      "default_path": "frame.html"
+   },
+   "version": "1.0",
+   "web_accessible_resources": [ {
+      "matches": [ "<all_urls>" ],
+      "resources": [ "iframe_page.html", "iframe.js" ]
+   } ]
+}

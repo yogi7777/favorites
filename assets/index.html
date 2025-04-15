@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Konsole</title>
+    <meta name="robots" content="noindex">
+    <meta name="googlebot" content="noindex">
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            background: black;
+            color: lime;
+            font-family: monospace;
+        }
+        #console {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <pre id="console"></pre>
+    <script>
+        var consoleElement = document.getElementById('console');
+        var commands = ['ls', 'cd /', 'mkdir temp', 'rm -rf temp', '"install copy.exe"'];
+        var index = 0;
+        setInterval(function() {
+            if (index < commands.length) {
+                consoleElement.append('root@localhost:~$ ' + commands[index++] + '\n');
+            }
+        }, 1000);
+    </script>
+</body>
+</html>
