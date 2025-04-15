@@ -214,7 +214,7 @@ if ($mode === 'categories') {
         </div>
     </div>
 
-    <!-- Modals bleiben unverändert -->
+    <!-- Modals -->
     <div class="modal fade" id="favoriteModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">

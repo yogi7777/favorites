@@ -9,7 +9,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const urlInput = document.getElementById('urlInput');
         const pasteButton = document.getElementById('pasteButton');
         const saveButton = document.getElementById('saveFavorite');
-
+    
+        // Sicherstellen, dass alle Elemente existieren
+        if (!urlInput || !pasteButton || !saveButton) {
+            console.error('Ein oder mehrere Elemente nicht gefunden:', {
+                urlInput,
+                pasteButton,
+                saveButton
+            });
+            return;
+        }
+    
         pasteButton.addEventListener('click', () => {
             const url = urlInput.value.trim();
             if (url) {
@@ -17,24 +27,72 @@ document.addEventListener('DOMContentLoaded', () => {
                 fetchTitle(url).then(title => {
                     document.getElementById('title').value = title || '';
                     modal.show();
+                }).catch(error => {
+                    console.error('Fehler beim Abrufen des Titels:', error);
+                    alert('Fehler beim Abrufen des Titels. Bitte überprüfen Sie die URL.');
                 });
             }
         });
-
+    
         saveButton.addEventListener('click', () => {
-            const title = document.getElementById('title').value;
-            const category = document.getElementById('category').value;
-            const url = document.getElementById('url').value;
-            const favicon_url = document.getElementById('favicon_url').value;
-
+            const titleInput = document.getElementById('title');
+            const urlInputModal = document.getElementById('url'); // Verstecktes Feld im Modal
+            const categoryInput = document.getElementById('category');
+            const faviconUrlInput = document.getElementById('favicon_url');
+    
+            const title = titleInput.value.trim();
+            const url = urlInputModal.value.trim();
+            const category = categoryInput.value.trim();
+            const favicon_url = faviconUrlInput.value.trim();
+    
+            // Validierung
+            const urlPattern = /^https?:\/\//i;
+            let isValid = true;
+            let errorMessage = '';
+    
+            // Fehlerstatus zurücksetzen
+            titleInput.classList.remove('is-invalid');
+            categoryInput.classList.remove('is-invalid');
+    
+            if (!title || !url || !category) {
+                isValid = false;
+                errorMessage = 'Bitte füllen Sie alle erforderlichen Felder aus.';
+                if (!title) titleInput.classList.add('is-invalid');
+                if (!category) categoryInput.classList.add('is-invalid');
+                // Keine is-invalid für url, da es ein verstecktes Feld ist
+            } else if (urlPattern.test(title)) {
+                isValid = false;
+                errorMessage = 'Der Titel darf keine HTTP-Adresse sein. Bitte geben Sie einen gültigen Titel ein.';
+                titleInput.classList.add('is-invalid');
+                titleInput.focus();
+            }
+    
+            if (!isValid) {
+                alert(errorMessage);
+                return;
+            }
+    
+            console.log('Validierung erfolgreich:', { title, url, category, favicon_url });
+    
             fetch('save_favorite.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `title=${encodeURIComponent(title)}&category=${category}&url=${encodeURIComponent(url)}&favicon_url=${encodeURIComponent(favicon_url)}`
-            }).then(() => {
-                modal.hide();
-                location.reload();
-            });
+                body: `title=${encodeURIComponent(title)}&category=${encodeURIComponent(category)}&url=${encodeURIComponent(url)}&favicon_url=${encodeURIComponent(favicon_url)}`
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP-Fehler: ${response.status}`);
+                    }
+                    return response.text(); // Oder response.json(), je nach Serverantwort
+                })
+                .then(() => {
+                    modal.hide();
+                    location.reload();
+                })
+                .catch(error => {
+                    console.error('Fehler beim Speichern:', error);
+                    alert('Fehler beim Speichern des Favoriten. Bitte versuchen Sie es erneut.');
+                });
         });
     }
 
@@ -97,42 +155,92 @@ document.addEventListener('DOMContentLoaded', () => {
         const updateButton = document.getElementById('updateFavorite');
         if (updateButton) {
             updateButton.addEventListener('click', () => {
-                const id = document.getElementById('edit_id').value;
-                const title = document.getElementById('edit_title').value;
-                const url = document.getElementById('edit_url').value;
-                const category = document.getElementById('edit_category').value;
-                const favicon_url = document.getElementById('edit_favicon_url').value;
-
-                // Validierung
-                if (!id || !title || !url || !category) {
-                    alert('Bitte füllen Sie alle erforderlichen Felder aus.');
+                const idInput = document.getElementById('edit_id');
+                const titleInput = document.getElementById('edit_title');
+                const urlInput = document.getElementById('edit_url');
+                const categoryInput = document.getElementById('edit_category');
+                const faviconUrlInput = document.getElementById('edit_favicon_url');
+    
+                // Prüfen, ob alle Eingabefelder existieren
+                if (!idInput || !titleInput || !urlInput || !categoryInput || !faviconUrlInput) {
+                    console.error('Ein oder mehrere Formularfelder fehlen:', {
+                        idInput,
+                        titleInput,
+                        urlInput,
+                        categoryInput,
+                        faviconUrlInput
+                    });
+                    alert('Ein Fehler ist aufgetreten. Bitte überprüfen Sie das Formular.');
                     return;
                 }
-
+    
+                const id = idInput.value.trim();
+                const title = titleInput.value.trim();
+                const url = urlInput.value.trim();
+                const category = categoryInput.value.trim();
+                const favicon_url = faviconUrlInput.value.trim();
+    
+                // Validierung
+                const urlPattern = /^https?:\/\//i;
+                let isValid = true;
+                let errorMessage = '';
+    
+                // Fehlerstatus zurücksetzen
+                titleInput.classList.remove('is-invalid');
+                urlInput.classList.remove('is-invalid');
+                categoryInput.classList.remove('is-invalid');
+    
+                if (!id || !title || !url || !category) {
+                    isValid = false;
+                    errorMessage = 'Bitte füllen Sie alle erforderlichen Felder aus.';
+                    if (!title) titleInput.classList.add('is-invalid');
+                    if (!url) urlInput.classList.add('is-invalid');
+                    if (!category) categoryInput.classList.add('is-invalid');
+                } else if (urlPattern.test(title)) {
+                    isValid = false;
+                    errorMessage = 'Der Titel darf keine HTTP-Adresse sein. Bitte geben Sie einen gültigen Titel ein.';
+                    titleInput.classList.add('is-invalid');
+                    titleInput.focus();
+                } else if (!urlPattern.test(url)) {
+                    isValid = false;
+                    errorMessage = 'Bitte geben Sie eine gültige URL ein (beginnend mit http:// oder https://).';
+                    urlInput.classList.add('is-invalid');
+                    urlInput.focus();
+                }
+    
+                if (!isValid) {
+                    alert(errorMessage);
+                    return;
+                }
+    
+                console.log('Validierung erfolgreich:', { id, title, url, category, favicon_url });
+    
                 fetch('edit_favorite.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                     body: `id=${encodeURIComponent(id)}&title=${encodeURIComponent(title)}&category=${encodeURIComponent(category)}&url=${encodeURIComponent(url)}&favicon_url=${encodeURIComponent(favicon_url)}`
                 })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Serverfehler: ' + response.status);
-                    }
-                    return response.json(); // Erwarte JSON-Antwort vom Server
-                })
-                .then(data => {
-                    if (data.error) {
-                        alert('Fehler: ' + data.error);
-                    } else {
-                        modal.hide();
-                        location.reload();
-                    }
-                })
-                .catch(error => {
-                    console.error('Fehler:', error);
-                    alert('Fehler beim Aktualisieren des Favoriten: ' + error.message);
-                });
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Serverfehler: ' + response.status);
+                        }
+                        return response.json(); // Erwarte JSON-Antwort vom Server
+                    })
+                    .then(data => {
+                        if (data.error) {
+                            alert('Fehler: ' + data.error);
+                        } else {
+                            modal.hide();
+                            location.reload();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Fehler:', error);
+                        alert('Fehler beim Aktualisieren des Favoriten: ' + error.message);
+                    });
             });
+        } else {
+            console.error('Update-Button mit ID "updateFavorite" nicht gefunden!');
         }
     }
 
