@@ -43,15 +43,18 @@ This allows you to open the sidebar with a single mouse click.
 
 ### Browser
 
-![image](https://github.com/user-attachments/assets/b1ac06dc-4e08-45f3-9c36-8dd66c32355c)
+![image](https://github.com/user-attachments/assets/2b867e47-57ab-4043-9a60-bea2393d478d)
+
 
 
 ### Sidebar
 
-![image](https://github.com/user-attachments/assets/994ad99b-cece-4dde-a3bc-d0bbe2617389)
+![image](https://github.com/user-attachments/assets/76fcc581-2429-4253-aee7-25ace10c4cf6)
+
 
 
 ### Mobile
 
-![image](https://github.com/user-attachments/assets/a4465c0d-4c78-4030-af33-9cb09254bbfd)
+![image](https://github.com/user-attachments/assets/b9ca4527-3b83-4962-bae2-50d14280567c)
+
 
