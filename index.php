@@ -241,7 +241,10 @@ if ($mode === 'categories') {
                             <label for="favicon_url" class="form-label">Custom Favicon URL (optional)</label>
                             <input type="url" class="form-control" id="favicon_url" placeholder="Leave blank for default">
                         </div>
-                        <input type="hidden" id="url">
+                        <div class="mb-3">
+                            <label for="url" class="form-label">URL</label>
+                            <input type="url" class="form-control" id="url" name="url" required>
+                        </div>
                     </form>
                 </div>
                 <div class="modal-footer">
