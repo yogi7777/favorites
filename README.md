@@ -7,9 +7,9 @@
 - **Authentication**: Login and profile management (username/email and password).
 - **Trusted Devices**: Secure HTTP cookie to maintain long-lasting sessions.
 - **Security**: Authentication, session management, protection against SQL injection via prepared statements.
-- **Bookmarks**: Add via drag-and-drop or URL input, edit, delete, with automatic or custom favicon download.
+- **Bookmarks**: Add via drag-and-drop direct into the categorie, or URL input, edit, delete, with automatic or custom favicon download.
 - **Categories**: Create, edit, delete and reorder via drag-and-drop, with alphabetical sorting for equal positions.
-- **Views**: View mode (read-only), Edit mode (manage bookmarks via drag-and-drop), and Categories mode (manage categories).
+- **Views**: View mode (read-only), Edit mode, and Categories mode (manage categories).
 - **Responsive Design**: Optimized for desktop, sidebar view, and mobile using Bootstrap 5.3.
 - **Dark Mode**: Consistent theme using `data-bs-theme="dark"`.
 - **Import/Export**: Export as JSON or HTML (compatible with Chrome, Firefox, Edge). Import via JSON.
