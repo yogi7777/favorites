@@ -1,4 +1,12 @@
-CREATE DATABASE favorites;
+-- ============================================================
+-- Vollstaendiges Datenbankschema fuer Neuinstallationen.
+-- Fuer Updates bestehender Installationen: migration.sql verwenden.
+-- ============================================================
+
+CREATE DATABASE IF NOT EXISTS favorites
+    CHARACTER SET utf8mb4
+    COLLATE utf8mb4_unicode_ci;
+
 USE favorites;
 
 CREATE TABLE users (
@@ -67,6 +75,7 @@ CREATE TABLE favorites (
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
 );
 
--- Beispiel-Admin-User (Passwort: "admin123", gehasht)
-INSERT INTO users (username, password_hash) 
+-- Beispiel-Admin-User (Passwort: "admin123" – nach der Installation aendern!)
+-- Passwort-Hash neu generieren mit: password_hash('deinPasswort', PASSWORD_BCRYPT)
+INSERT INTO users (username, password_hash)
 VALUES ('admin', '$2y$10$u2IRsBqlyw/3xRBj1t3IQeJ2vf7MojRpIQKPHI/IEzVVgtgxq7m/W');
