@@ -1,4 +1,6 @@
 <?php
+# Database configuration - replace with your actual credentials
+# rename this file to config.php and update the values accordingly
 
 define('DB_HOST', 'hostname');
 define('DB_USER', 'username');

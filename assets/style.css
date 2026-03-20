@@ -112,6 +112,47 @@ body {
     margin-right: 15px;
 }
 
+.category-tabs {
+    margin-bottom: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
+    scrollbar-width: thin;
+}
+
+.category-tabs .nav-link {
+    white-space: nowrap;
+}
+
+.category-tabs .tab-sortable-item {
+    transition: background-color 0.2s, opacity 0.2s;
+}
+
+.category-tabs .tab-sortable-item.dragging {
+    opacity: 0.5;
+}
+
+.category-tabs .tab-sortable-item.dragover {
+    background-color: rgba(204, 2, 2, 0.25);
+}
+
+.single-category-panel {
+    margin: 0 15px 15px 15px;
+    padding: 10px;
+    border-radius: 8px;
+    background-color: rgba(43, 45, 47, 0.55);
+    min-height: 120px;
+}
+
+.single-category-panel.dragover {
+    background-color: rgba(204, 2, 2, 0.3);
+}
+
+.category-checkbox-list {
+    max-height: 220px;
+    overflow-y: auto;
+}
+
 #searchForm {
     min-width: 120px;
     max-width: 250px;

@@ -1,422 +1,287 @@
 document.addEventListener('DOMContentLoaded', () => {
     const favoriteModal = document.getElementById('favoriteModal');
-    const favoriteForm = document.getElementById('favoriteForm');
-    const editModal = document.getElementById('editFavoriteModal');
+    const editModal     = document.getElementById('editFavoriteModal');
     const categoryModal = document.getElementById('editCategoryModal');
 
+    // ── Restore last active tab ──────────────────────────────────────────
+    const savedTab = localStorage.getItem('activeCategoryTab');
+    if (savedTab) {
+        const tabEl = document.querySelector(`[data-bs-target="${savedTab}"]`);
+        if (tabEl) new bootstrap.Tab(tabEl).show();
+    }
+    document.querySelectorAll('#categoryTabs [data-bs-toggle="tab"]').forEach(tabEl => {
+        tabEl.addEventListener('shown.bs.tab', (e) => {
+            localStorage.setItem('activeCategoryTab', e.target.dataset.bsTarget);
+        });
+    });
+
+    // ── ADD FAVORITE ─────────────────────────────────────────────────────
     if (favoriteModal) {
-        const modal = new bootstrap.Modal(favoriteModal);
-        const urlInput = document.getElementById('urlInput');
+        const modal       = new bootstrap.Modal(favoriteModal);
+        const urlInput    = document.getElementById('urlInput');
         const pasteButton = document.getElementById('pasteButton');
-        const saveButton = document.getElementById('saveFavorite');
-    
-        // Sicherstellen, dass alle Elemente existieren
+        const saveButton  = document.getElementById('saveFavorite');
+
         if (!urlInput || !pasteButton || !saveButton) {
-            console.error('Ein oder mehrere Elemente nicht gefunden:', {
-                urlInput,
-                pasteButton,
-                saveButton
-            });
+            console.error('Add-Favorite: Elemente nicht gefunden.', { urlInput, pasteButton, saveButton });
             return;
         }
-    
+
         pasteButton.addEventListener('click', () => {
             const url = urlInput.value.trim();
-            if (url) {
-                document.getElementById('url').value = url;
-                fetchTitle(url).then(title => {
-                    document.getElementById('title').value = title || '';
-                    modal.show();
-                }).catch(error => {
-                    console.error('Fehler beim Abrufen des Titels:', error);
-                    alert('Fehler beim Abrufen des Titels. Bitte überprüfen Sie die URL.');
-                });
-            }
+            if (!url) return;
+            document.getElementById('url').value = url;
+
+            // Pre-select active tab category (if not "Alle")
+            const activePane       = document.querySelector('.tab-pane.show.active');
+            const activeCategoryId = activePane?.dataset?.categoryId || null;
+            document.querySelectorAll('#add-category-checkboxes input[type=checkbox]').forEach(cb => {
+                cb.checked = activeCategoryId ? (cb.value === String(activeCategoryId)) : false;
+            });
+
+            fetchTitle(url)
+                .then(title => { document.getElementById('title').value = title || ''; modal.show(); })
+                .catch(() => alert('Fehler beim Abrufen des Titels. Bitte URL prüfen.'));
         });
-    
+
         saveButton.addEventListener('click', () => {
-            const titleInput = document.getElementById('title');
-            const urlInputModal = document.getElementById('url'); // Verstecktes Feld im Modal
-            const categoryInput = document.getElementById('category');
-            const faviconUrlInput = document.getElementById('favicon_url');
-    
-            const title = titleInput.value.trim();
-            const url = urlInputModal.value.trim();
-            const category = categoryInput.value.trim();
-            const favicon_url = faviconUrlInput.value.trim();
-    
-            // Validierung
-            const urlPattern = /^https?:\/\//i;
-            let isValid = true;
-            let errorMessage = '';
-    
-            // Fehlerstatus zurücksetzen
+            const titleInput    = document.getElementById('title');
+            const urlInputModal = document.getElementById('url');
+            const faviconInput  = document.getElementById('favicon_url');
+            const selectedCats  = [...document.querySelectorAll('#add-category-checkboxes input[type=checkbox]:checked')].map(cb => cb.value);
+            const title         = titleInput.value.trim();
+            const url           = urlInputModal.value.trim();
+            const favicon_url   = faviconInput.value.trim();
+            const urlPattern    = /^https?:\/\//i;
+
             titleInput.classList.remove('is-invalid');
-            categoryInput.classList.remove('is-invalid');
-    
-            if (!title || !url || !category) {
-                isValid = false;
-                errorMessage = 'Bitte füllen Sie alle erforderlichen Felder aus.';
+            if (!title || !url || selectedCats.length === 0) {
                 if (!title) titleInput.classList.add('is-invalid');
-                if (!category) categoryInput.classList.add('is-invalid');
-                // Keine is-invalid für url, da es ein verstecktes Feld ist
-            } else if (urlPattern.test(title)) {
-                isValid = false;
-                errorMessage = 'Der Titel darf keine HTTP-Adresse sein. Bitte geben Sie einen gültigen Titel ein.';
-                titleInput.classList.add('is-invalid');
-                titleInput.focus();
-            }
-    
-            if (!isValid) {
-                alert(errorMessage);
+                alert('Bitte füllen Sie alle Felder aus und wählen Sie mindestens eine Kategorie.');
                 return;
             }
-    
-            console.log('Validierung erfolgreich:', { title, url, category, favicon_url });
-    
+            if (urlPattern.test(title)) {
+                titleInput.classList.add('is-invalid');
+                titleInput.focus();
+                alert('Der Titel darf keine HTTP-Adresse sein.');
+                return;
+            }
+
+            const params = new URLSearchParams({ title, url, favicon_url });
+            selectedCats.forEach(c => params.append('category_ids[]', c));
+
             fetch('save_favorite.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `title=${encodeURIComponent(title)}&category=${encodeURIComponent(category)}&url=${encodeURIComponent(url)}&favicon_url=${encodeURIComponent(favicon_url)}`
+                body: params.toString()
             })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP-Fehler: ${response.status}`);
-                    }
-                    return response.text(); // Oder response.json(), je nach Serverantwort
-                })
-                .then(() => {
-                    modal.hide();
-                    location.reload();
-                })
-                .catch(error => {
-                    console.error('Fehler beim Speichern:', error);
-                    alert('Fehler beim Speichern des Favoriten. Bitte versuchen Sie es erneut.');
-                });
+            .then(response => { if (!response.ok) throw new Error(`HTTP-Fehler: ${response.status}`); return response.text(); })
+            .then(() => { modal.hide(); location.reload(); })
+            .catch(error => { console.error('Fehler:', error); alert('Fehler beim Speichern des Favoriten.'); });
         });
     }
 
+    // ── EDIT / DELETE FAVORITE ───────────────────────────────────────────
     if (editModal) {
         const modal = new bootstrap.Modal(editModal);
-        
-        // Edit-Buttons für Favoriten
+
         document.querySelectorAll('.edit-favorite').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                
-                const favoriteDiv = btn.closest('.favorite');
-                const id = favoriteDiv.dataset.id;
-                const title = favoriteDiv.dataset.title;
-                const url = favoriteDiv.querySelector('a').getAttribute('href');
-                const favicon = favoriteDiv.querySelector('img').getAttribute('src');
-                
-                // Direkt die Werte aus dem DOM setzen, anstatt eine API abzufragen
-                document.getElementById('edit_id').value = id;
-                document.getElementById('edit_title').value = title;
-                document.getElementById('edit_url').value = url;
-                // Aktuelle Kategorie finden
-                const categoryId = favoriteDiv.closest('.category').dataset.categoryId;
-                document.getElementById('edit_category').value = categoryId;
+                const fav         = btn.closest('.favorite');
+                const id          = fav.dataset.id;
+                const title       = fav.dataset.title;
+                const url         = fav.querySelector('a').getAttribute('href');
+                const favicon     = fav.querySelector('img').getAttribute('src');
+                const categoryIds = (fav.dataset.categoryIds || '').split(',').filter(Boolean);
+
+                document.getElementById('edit_id').value          = id;
+                document.getElementById('edit_title').value       = title;
+                document.getElementById('edit_url').value         = url;
                 document.getElementById('edit_favicon_url').value = favicon;
-                
+                document.querySelectorAll('#edit-category-checkboxes input[type=checkbox]').forEach(cb => {
+                    cb.checked = categoryIds.includes(cb.value);
+                });
                 modal.show();
             });
         });
 
-        // Delete-Buttons für Favoriten
         document.querySelectorAll('.delete-favorite').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                
-                if (confirm('Are you sure you want to delete this favorite?')) {
-                    const favoriteDiv = btn.closest('.favorite');
-                    const id = favoriteDiv.dataset.id;
-                    
-                    fetch('delete_favorite.php', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: `id=${id}`
-                    })
-                    .then(response => {
-                        // Keine JSON-Prüfung, einfach annehmen, dass es funktioniert hat
-                        favoriteDiv.remove();
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('An error occurred while deleting');
-                    });
-                }
+                if (!confirm('Are you sure you want to delete this favorite?')) return;
+                const fav = btn.closest('.favorite');
+                const id  = fav.dataset.id;
+                fetch('delete_favorite.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `id=${id}`
+                })
+                .then(() => {
+                    document.querySelectorAll(`.favorite[data-id="${id}"]`).forEach(el => el.remove());
+                })
+                .catch(error => { console.error('Error:', error); alert('An error occurred while deleting.'); });
             });
         });
 
-        // Update Favorite Button
         const updateButton = document.getElementById('updateFavorite');
         if (updateButton) {
             updateButton.addEventListener('click', () => {
-                const idInput = document.getElementById('edit_id');
-                const titleInput = document.getElementById('edit_title');
-                const urlInput = document.getElementById('edit_url');
-                const categoryInput = document.getElementById('edit_category');
-                const faviconUrlInput = document.getElementById('edit_favicon_url');
-    
-                // Prüfen, ob alle Eingabefelder existieren
-                if (!idInput || !titleInput || !urlInput || !categoryInput || !faviconUrlInput) {
-                    console.error('Ein oder mehrere Formularfelder fehlen:', {
-                        idInput,
-                        titleInput,
-                        urlInput,
-                        categoryInput,
-                        faviconUrlInput
-                    });
-                    alert('Ein Fehler ist aufgetreten. Bitte überprüfen Sie das Formular.');
+                const idInput      = document.getElementById('edit_id');
+                const titleInput   = document.getElementById('edit_title');
+                const urlInput     = document.getElementById('edit_url');
+                const faviconInput = document.getElementById('edit_favicon_url');
+                const selectedCats = [...document.querySelectorAll('#edit-category-checkboxes input[type=checkbox]:checked')].map(cb => cb.value);
+
+                if (!idInput || !titleInput || !urlInput || !faviconInput) {
+                    alert('Ein Fehler ist aufgetreten. Bitte das Formular prüfen.');
                     return;
                 }
-    
-                const id = idInput.value.trim();
-                const title = titleInput.value.trim();
-                const url = urlInput.value.trim();
-                const category = categoryInput.value.trim();
-                const favicon_url = faviconUrlInput.value.trim();
-    
-                // Validierung
-                const urlPattern = /^https?:\/\//i;
-                let isValid = true;
-                let errorMessage = '';
-    
-                // Fehlerstatus zurücksetzen
+
+                const id          = idInput.value.trim();
+                const title       = titleInput.value.trim();
+                const url         = urlInput.value.trim();
+                const favicon_url = faviconInput.value.trim();
+                const urlPattern  = /^https?:\/\//i;
+
                 titleInput.classList.remove('is-invalid');
                 urlInput.classList.remove('is-invalid');
-                categoryInput.classList.remove('is-invalid');
-    
-                if (!id || !title || !url || !category) {
-                    isValid = false;
-                    errorMessage = 'Bitte füllen Sie alle erforderlichen Felder aus.';
+
+                if (!id || !title || !url || selectedCats.length === 0) {
                     if (!title) titleInput.classList.add('is-invalid');
-                    if (!url) urlInput.classList.add('is-invalid');
-                    if (!category) categoryInput.classList.add('is-invalid');
-                } else if (urlPattern.test(title)) {
-                    isValid = false;
-                    errorMessage = 'Der Titel darf keine HTTP-Adresse sein. Bitte geben Sie einen gültigen Titel ein.';
-                    titleInput.classList.add('is-invalid');
-                    titleInput.focus();
-                } else if (!urlPattern.test(url)) {
-                    isValid = false;
-                    errorMessage = 'Bitte geben Sie eine gültige URL ein (beginnend mit http:// oder https://).';
-                    urlInput.classList.add('is-invalid');
-                    urlInput.focus();
-                }
-    
-                if (!isValid) {
-                    alert(errorMessage);
+                    if (!url)   urlInput.classList.add('is-invalid');
+                    alert('Bitte füllen Sie alle Felder aus und wählen Sie mindestens eine Kategorie.');
                     return;
                 }
-    
-                console.log('Validierung erfolgreich:', { id, title, url, category, favicon_url });
-    
+                if (urlPattern.test(title)) {
+                    titleInput.classList.add('is-invalid');
+                    titleInput.focus();
+                    alert('Der Titel darf keine HTTP-Adresse sein.');
+                    return;
+                }
+                if (!urlPattern.test(url)) {
+                    urlInput.classList.add('is-invalid');
+                    urlInput.focus();
+                    alert('Bitte eine gültige URL eingeben (beginnend mit http:// oder https://).');
+                    return;
+                }
+
+                const params = new URLSearchParams({ id, title, url, favicon_url });
+                selectedCats.forEach(c => params.append('category_ids[]', c));
+
                 fetch('edit_favorite.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: `id=${encodeURIComponent(id)}&title=${encodeURIComponent(title)}&category=${encodeURIComponent(category)}&url=${encodeURIComponent(url)}&favicon_url=${encodeURIComponent(favicon_url)}`
+                    body: params.toString()
                 })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Serverfehler: ' + response.status);
-                        }
-                        return response.json(); // Erwarte JSON-Antwort vom Server
-                    })
-                    .then(data => {
-                        if (data.error) {
-                            alert('Fehler: ' + data.error);
-                        } else {
-                            modal.hide();
-                            location.reload();
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Fehler:', error);
-                        alert('Fehler beim Aktualisieren des Favoriten: ' + error.message);
-                    });
+                .then(response => { if (!response.ok) throw new Error('Serverfehler: ' + response.status); return response.json(); })
+                .then(data => { if (data.error) { alert('Fehler: ' + data.error); } else { modal.hide(); location.reload(); } })
+                .catch(error => { console.error('Fehler:', error); alert('Fehler beim Aktualisieren: ' + error.message); });
             });
-        } else {
-            console.error('Update-Button mit ID "updateFavorite" nicht gefunden!');
         }
     }
 
+    // ── CATEGORY EDIT MODAL ──────────────────────────────────────────────
     if (categoryModal) {
         const modal = new bootstrap.Modal(categoryModal);
         document.querySelectorAll('.edit-category').forEach(btn => {
             btn.addEventListener('click', () => {
-                document.getElementById('edit_category_id').value = btn.dataset.id;
+                document.getElementById('edit_category_id').value   = btn.dataset.id;
                 document.getElementById('edit_category_name').value = btn.dataset.name;
                 modal.show();
             });
         });
-
-        document.querySelectorAll('.delete-category').forEach(btn => {
-            btn.addEventListener('click', () => {
-                if (confirm('Are you sure you want to delete this category and all its favorites?')) {
-                    const id = btn.dataset.id;
-                    fetch('delete_category.php', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: `id=${id}`
-                    }).then(() => location.reload());
-                }
-            });
-        });
     }
 
-    // Drag-and-Drop auf Kacheln
+    // ── DRAG & DROP (external URL onto a category tile) ──────────────────
     window.allowDrop = function(event) {
         event.preventDefault();
-        
-        // Visuelles Feedback für Dragover
-        const category = event.target.closest('.category');
-        if (category) {
-            category.classList.add('dragover');
-        }
+        const target = event.target.closest('.category') || event.target.closest('.single-category-panel');
+        if (target) target.classList.add('dragover');
     };
 
     window.drop = function(event) {
         event.preventDefault();
-        const url = event.dataTransfer.getData('text');
-        const categoryId = event.target.closest('.category').dataset.categoryId;
-        
-        // Dragover-Highlight entfernen
-        const category = event.target.closest('.category');
-        if (category) {
-            category.classList.remove('dragover');
-        }
-
-        if (url && categoryId) {
+        const url   = event.dataTransfer.getData('text');
+        const catEl = event.target.closest('.category') || event.target.closest('.single-category-panel');
+        const catId = catEl?.dataset?.categoryId || null;
+        if (catEl) catEl.classList.remove('dragover');
+        if (url) {
             document.getElementById('url').value = url;
-            document.getElementById('category').value = categoryId;
+            document.querySelectorAll('#add-category-checkboxes input[type=checkbox]').forEach(cb => {
+                cb.checked = catId ? (cb.value === String(catId)) : false;
+            });
             fetchTitle(url).then(title => {
                 document.getElementById('title').value = title || '';
-                const modal = new bootstrap.Modal(document.getElementById('favoriteModal'));
-                modal.show();
+                new bootstrap.Modal(document.getElementById('favoriteModal')).show();
             });
         }
     };
 
-    // Titel aus URL holen
+    // ── HELPER: fetch page title ─────────────────────────────────────────
     async function fetchTitle(url) {
         try {
             const response = await fetch('get_title.php?url=' + encodeURIComponent(url));
             const data = await response.json();
             return data.title || url;
-        } catch (error) {
-            console.error('Fehler beim Abrufen des Titels:', error);
+        } catch {
             return url;
         }
     }
 
-    // Visuelles Feedback für Dragover/Dragleave
-    document.querySelectorAll('.category').forEach(cat => {
-        cat.addEventListener('dragover', () => cat.classList.add('dragover'));
-        cat.addEventListener('dragleave', () => cat.classList.remove('dragover'));
-        cat.addEventListener('drop', () => cat.classList.remove('dragover'));
-    });
-
-    // Suche
+    // ── SEARCH ───────────────────────────────────────────────────────────
     const searchInput = document.getElementById('search');
     if (searchInput) {
         searchInput.addEventListener('input', () => {
             const query = searchInput.value.toLowerCase();
 
-            // Wenn das Suchfeld leer ist, alles zurücksetzen
+            if (query !== '') {
+                const allTabBtn = document.getElementById('tab-all-btn');
+                if (allTabBtn && !allTabBtn.classList.contains('active')) {
+                    new bootstrap.Tab(allTabBtn).show();
+                }
+            }
+
             if (query === '') {
-                // View- und Edit-Modus (Kacheln)
-                const categories = document.querySelectorAll('.category');
-                if (categories.length > 0) {
-                    categories.forEach(category => {
-                        category.style.display = '';
-                        const favoritesInCategory = category.querySelectorAll('.favorite');
-                        favoritesInCategory.forEach(fav => {
-                            fav.style.display = '';
-                        });
-                    });
-                }
-
-                // Categories-Modus (Tabelle)
-                const categoryRows = document.querySelectorAll('.category-row');
-                if (categoryRows.length > 0) {
-                    categoryRows.forEach(row => {
-                        row.style.display = '';
-                    });
-                }
-
-                // Admin-Modus (Tabelle)
-                const userRows = document.querySelectorAll('.user-row');
-                if (userRows.length > 0) {
-                    userRows.forEach(row => {
-                        row.style.display = '';
-                    });
-                }
-
-                // Scroll zurück nach oben
+                document.querySelectorAll('.category').forEach(category => {
+                    category.style.display = '';
+                    category.querySelectorAll('.favorite').forEach(fav => { fav.style.display = ''; });
+                });
+                document.querySelectorAll('.category-row').forEach(row => { row.style.display = ''; });
+                document.querySelectorAll('.user-row').forEach(row => { row.style.display = ''; });
                 window.scrollTo({ top: 0, behavior: 'smooth' });
-
-                return; // Beende die Funktion hier
+                return;
             }
 
-            // Bestehende Logik für die Suche
-            const categories = document.querySelectorAll('.category');
-            if (categories.length > 0) {
-                categories.forEach(category => {
-                    const title = category.querySelector('.card-title').textContent.toLowerCase();
-                    const favoritesInCategory = category.querySelectorAll('.favorite');
+            document.querySelectorAll('.category').forEach(category => {
+                const titleEl  = category.querySelector('.card-title');
+                const catTitle = titleEl ? titleEl.textContent.toLowerCase() : '';
+                const favs     = category.querySelectorAll('.favorite');
+                if (catTitle.includes(query)) {
+                    category.style.display = '';
+                    favs.forEach(fav => { fav.style.display = ''; });
+                } else {
+                    let hasVisible = false;
+                    favs.forEach(fav => {
+                        const match = fav.dataset.title.toLowerCase().includes(query);
+                        fav.style.display = match ? '' : 'none';
+                        if (match) hasVisible = true;
+                    });
+                    category.style.display = hasVisible ? '' : 'none';
+                }
+            });
 
-                    if (title.includes(query)) {
-                        category.style.display = '';
-                        favoritesInCategory.forEach(fav => {
-                            fav.style.display = '';
-                        });
-                    } else {
-                        let hasVisibleFavorites = false;
-                        favoritesInCategory.forEach(fav => {
-                            const favTitle = fav.dataset.title.toLowerCase();
-                            if (favTitle.includes(query)) {
-                                fav.style.display = '';
-                                hasVisibleFavorites = true;
-                            } else {
-                                fav.style.display = 'none';
-                            }
-                        });
-                        category.style.display = hasVisibleFavorites ? '' : 'none';
-                    }
-                });
-            }
-
-            const categoryRows = document.querySelectorAll('.category-row');
-            if (categoryRows.length > 0) {
-                categoryRows.forEach(row => {
-                    const name = row.dataset.name.toLowerCase();
-                    if (name.includes(query)) {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
-                    }
-                });
-            }
-
-            const userRows = document.querySelectorAll('.user-row');
-            if (userRows.length > 0) {
-                userRows.forEach(row => {
-                    const username = row.dataset.username.toLowerCase();
-                    if (username.includes(query)) {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
-                    }
-                });
-            }
+            document.querySelectorAll('.category-row').forEach(row => {
+                row.style.display = row.dataset.name.toLowerCase().includes(query) ? '' : 'none';
+            });
+            document.querySelectorAll('.user-row').forEach(row => {
+                row.style.display = row.dataset.username?.toLowerCase().includes(query) ? '' : 'none';
+            });
         });
     }
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    tooltipTriggerList.forEach(function (tooltipTriggerEl) {
-        new bootstrap.Tooltip(tooltipTriggerEl);
-    });
+
+    // ── TOOLTIPS ─────────────────────────────────────────────────────────
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
 });

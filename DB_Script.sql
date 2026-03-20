@@ -28,12 +28,20 @@ CREATE TABLE categories (
 CREATE TABLE favorites (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
-    category_id INT NOT NULL,
+    category_id INT NULL,
     title VARCHAR(255) NOT NULL,
     url VARCHAR(512) NOT NULL,
     favicon_url VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Junction table: many-to-many relation between favorites and categories
+CREATE TABLE favorite_categories (
+    favorite_id INT NOT NULL,
+    category_id INT NOT NULL,
+    PRIMARY KEY (favorite_id, category_id),
+    FOREIGN KEY (favorite_id) REFERENCES favorites(id) ON DELETE CASCADE,
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
 );
 
