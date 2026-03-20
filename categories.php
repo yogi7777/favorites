@@ -88,12 +88,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    if (isset($_POST['save_category_tabs'])) {
-        $categoryId = (int)($_POST['category_id'] ?? 0);
-        $tabIds     = $_POST['tabs'] ?? [];
-        if (!is_array($tabIds)) {
-            $tabIds = [];
-        }
+    if (isset($_POST['save_all_category_tabs'])) {
+        $catIds = $_POST['cat_ids'] ?? [];
+        $allTabsPost = $_POST['tabs'] ?? [];
 
         $stmt = $pdo->prepare('SELECT id, slug FROM tabs WHERE user_id = ? ORDER BY position ASC');
         $stmt->execute([$userId]);
@@ -108,42 +105,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        $selected = [];
-        foreach ($tabIds as $tabId) {
-            $tabId = (int)$tabId;
-            if (in_array($tabId, $validIds, true)) {
-                $selected[] = $tabId;
+        $deleteMapStmt    = $pdo->prepare('DELETE FROM category_tabs WHERE category_id = ? AND tab_id = ?');
+        $deletePosStmt    = $pdo->prepare('DELETE FROM category_tab_positions WHERE category_id = ? AND tab_id = ?');
+        $insertMapStmt    = $pdo->prepare('INSERT IGNORE INTO category_tabs (category_id, tab_id) VALUES (?, ?)');
+        $selectPosStmt    = $pdo->prepare('SELECT position FROM category_tab_positions WHERE tab_id = ? AND category_id = ? LIMIT 1');
+        $selectMaxPosStmt = $pdo->prepare('SELECT COALESCE(MAX(position), -1) + 1 FROM category_tab_positions WHERE tab_id = ?');
+        $insertPosStmt    = $pdo->prepare('INSERT INTO category_tab_positions (tab_id, category_id, position) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE position = VALUES(position)');
+        $checkCatStmt     = $pdo->prepare('SELECT id FROM categories WHERE id = ? AND user_id = ? LIMIT 1');
+        $getTabsStmt      = $pdo->prepare('SELECT tab_id FROM category_tabs WHERE category_id = ?');
+
+        foreach ($catIds as $rawCatId) {
+            $categoryId = (int)$rawCatId;
+
+            $checkCatStmt->execute([$categoryId, $userId]);
+            if (!$checkCatStmt->fetchColumn()) {
+                continue;
             }
-        }
 
-        if ($defaultTabId !== null && !in_array($defaultTabId, $selected, true)) {
-            $selected[] = $defaultTabId;
-        }
+            $rawSelected = $allTabsPost[$categoryId] ?? [];
+            $selected = [];
+            foreach ($rawSelected as $tabId) {
+                $tabId = (int)$tabId;
+                if (in_array($tabId, $validIds, true)) {
+                    $selected[] = $tabId;
+                }
+            }
+            if ($defaultTabId !== null && !in_array($defaultTabId, $selected, true)) {
+                $selected[] = $defaultTabId;
+            }
+            $selected = array_values(array_unique($selected));
 
-        $selected = array_values(array_unique($selected));
+            $getTabsStmt->execute([$categoryId]);
+            $currentTabIds = array_map('intval', $getTabsStmt->fetchAll(PDO::FETCH_COLUMN));
 
-        $stmt = $pdo->prepare('SELECT id FROM categories WHERE id = ? AND user_id = ? LIMIT 1');
-        $stmt->execute([$categoryId, $userId]);
-        $categoryExists = (bool)$stmt->fetchColumn();
-
-        if ($categoryExists) {
-            $stmt = $pdo->prepare('SELECT tab_id FROM category_tabs WHERE category_id = ?');
-            $stmt->execute([$categoryId]);
-            $currentTabIds = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
-
-            $deleteMapStmt = $pdo->prepare('DELETE FROM category_tabs WHERE category_id = ? AND tab_id = ?');
-            $deletePosStmt = $pdo->prepare('DELETE FROM category_tab_positions WHERE category_id = ? AND tab_id = ?');
             foreach ($currentTabIds as $tabId) {
                 if (!in_array($tabId, $selected, true)) {
                     $deleteMapStmt->execute([$categoryId, $tabId]);
                     $deletePosStmt->execute([$categoryId, $tabId]);
                 }
             }
-
-            $insertMapStmt    = $pdo->prepare('INSERT IGNORE INTO category_tabs (category_id, tab_id) VALUES (?, ?)');
-            $selectPosStmt    = $pdo->prepare('SELECT position FROM category_tab_positions WHERE tab_id = ? AND category_id = ? LIMIT 1');
-            $selectMaxPosStmt = $pdo->prepare('SELECT COALESCE(MAX(position), -1) + 1 FROM category_tab_positions WHERE tab_id = ?');
-            $insertPosStmt    = $pdo->prepare('INSERT INTO category_tab_positions (tab_id, category_id, position) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE position = VALUES(position)');
 
             foreach ($selected as $tabId) {
                 $insertMapStmt->execute([$categoryId, $tabId]);
@@ -242,14 +242,19 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
                             <input type="text" name="name" class="form-control" placeholder="Category Name" required>
                         </div>
                         <div class="col-md-4 col-12">
-                            <button type="submit" name="add_category" class="btn btn-primary w-100">Add Category</button>
+                            <button type="submit" name="add_category" class="btn btn-secondary w-100">Add Category</button>
                         </div>
                     </div>
                 </form>
             </div>
 
             <div class="container-fluid">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="mb-0">Categories</h2>
+                    <button type="submit" form="save-all-cats-form" name="save_all_category_tabs" class="btn btn-primary">Speichern</button>
+                </div>
                 <div class="table-responsive" id="categoriesTable">
+                    <form method="POST" id="save-all-cats-form">
                     <table class="table table-dark">
                         <thead>
                             <tr>
@@ -262,11 +267,11 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
                         <tbody>
                             <?php foreach ($allCategories as $category): ?>
                                 <tr class="category-row" data-name="<?php echo htmlspecialchars($category['name']); ?>">
+                                    <input type="hidden" name="cat_ids[]" value="<?php echo (int)$category['id']; ?>">
                                     <td><?php echo (int)$category['id']; ?></td>
                                     <td><?php echo htmlspecialchars($category['name']); ?></td>
                                     <td>
-                                        <form method="POST" class="d-flex gap-2 flex-wrap align-items-center">
-                                            <input type="hidden" name="category_id" value="<?php echo (int)$category['id']; ?>">
+                                        <div class="d-flex gap-2 flex-wrap align-items-center">
                                             <?php foreach ($tabs as $tab): ?>
                                                 <?php
                                                 $assignedTabs = $categoryTabMap[(int)$category['id']] ?? [];
@@ -274,12 +279,11 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
                                                 $isDefault    = $tab['slug'] === 'alle';
                                                 ?>
                                                 <label class="form-check form-check-inline">
-                                                    <input class="form-check-input" type="checkbox" name="tabs[]" value="<?php echo (int)$tab['id']; ?>" <?php echo $isChecked ? 'checked' : ''; ?> <?php echo $isDefault ? 'disabled' : ''; ?>>
+                                                    <input class="form-check-input" type="checkbox" name="tabs[<?php echo (int)$category['id']; ?>][]" value="<?php echo (int)$tab['id']; ?>" <?php echo $isChecked ? 'checked' : ''; ?> <?php echo $isDefault ? 'disabled' : ''; ?>>
                                                     <span class="form-check-label"><?php echo htmlspecialchars($tab['name']); ?></span>
                                                 </label>
                                             <?php endforeach; ?>
-                                            <button type="submit" name="save_category_tabs" class="btn btn-sm btn-outline-primary">Save Tabs</button>
-                                        </form>
+                                        </div>
                                     </td>
                                     <td>
                                         <button class="btn btn-sm btn-outline-warning edit-category" data-id="<?php echo (int)$category['id']; ?>" data-name="<?php echo htmlspecialchars($category['name']); ?>">Edit</button>
@@ -292,6 +296,7 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
                             <?php endforeach; ?>
                         </tbody>
                     </table>
+                    </form>
                 </div>
             </div>
         </div>
