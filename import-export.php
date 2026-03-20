@@ -22,13 +22,43 @@ function exportFavoritesData($user_id, $pdo) {
     $stmt = $pdo->prepare("SELECT id, user_id, category_id, title, url, favicon_url, created_at FROM favorites WHERE user_id = ?");
     $stmt->execute([$user_id]);
     $favorites = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Tabs abrufen
+    $stmt = $pdo->prepare("SELECT id, user_id, name, slug, icon, position, created_at FROM tabs WHERE user_id = ? ORDER BY position ASC, name ASC");
+    $stmt->execute([$user_id]);
+    $tabs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Kategorie-Tab-Mapping abrufen
+    $stmt = $pdo->prepare(
+        "SELECT ct.category_id, ct.tab_id
+         FROM category_tabs ct
+         JOIN categories c ON c.id = ct.category_id
+         JOIN tabs t ON t.id = ct.tab_id
+         WHERE c.user_id = ? AND t.user_id = ?"
+    );
+    $stmt->execute([$user_id, $user_id]);
+    $categoryTabs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Tab-spezifische Positionen abrufen
+    $stmt = $pdo->prepare(
+        "SELECT ctp.tab_id, ctp.category_id, ctp.position
+         FROM category_tab_positions ctp
+         JOIN tabs t ON t.id = ctp.tab_id
+         JOIN categories c ON c.id = ctp.category_id
+         WHERE t.user_id = ? AND c.user_id = ?"
+    );
+    $stmt->execute([$user_id, $user_id]);
+    $categoryTabPositions = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Daten in einem Array zusammenfassen
     $data = [
         'categories' => $categories,
         'favorites' => $favorites,
+        'tabs' => $tabs,
+        'category_tabs' => $categoryTabs,
+        'category_tab_positions' => $categoryTabPositions,
         'export_date' => date('Y-m-d H:i:s'),
-        'version' => '1.0'
+        'version' => '2.0'
     ];
     
     // In JSON umwandeln
@@ -131,6 +161,39 @@ function downloadFavicon($url, $id) {
 }
 
 /**
+ * Erzeugt einen eindeutigen Tab-Slug pro Benutzer.
+ */
+function buildUniqueTabSlug($user_id, $slug, $pdo, $excludeTabId = null) {
+    $base = trim($slug);
+    if ($base === '') {
+        $base = 'tab';
+    }
+
+    $candidate = $base;
+    $counter = 2;
+
+    while (true) {
+        $sql = "SELECT id FROM tabs WHERE user_id = ? AND slug = ?";
+        $params = [$user_id, $candidate];
+
+        if ($excludeTabId !== null) {
+            $sql .= " AND id != ?";
+            $params[] = $excludeTabId;
+        }
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+
+        if (!$stmt->fetchColumn()) {
+            return $candidate;
+        }
+
+        $candidate = substr($base, 0, 110) . '-' . $counter;
+        $counter++;
+    }
+}
+
+/**
  * Importiert Favorites und Kategorien aus einem JSON-String
  * 
  * @param int $user_id Die ID des Benutzers
@@ -146,8 +209,9 @@ function importFavoritesData($user_id, $jsonData, $pdo, $update_favicons = false
         return ['success' => false, 'message' => 'Ungültiges Datenformat.'];
     }
     
-    // Array für Kategorie-Mapping initialisieren
+    // Arrays fuer Mapping initialisieren
     $categoryMap = [];
+    $tabMap = [];
     $updated_favicons = 0;
     
     try {
@@ -176,6 +240,159 @@ function importFavoritesData($user_id, $jsonData, $pdo, $update_favicons = false
                 // Original-ID zu neuer ID mappen für Favorites-Import
                 $categoryMap[$category['id']] = $pdo->lastInsertId();
             }
+        }
+
+        // Tabs importieren (ab Version 2.0), sonst Default-Tab verwenden
+        $importTabs = isset($data['tabs']) && is_array($data['tabs']) ? $data['tabs'] : [];
+        if (!empty($importTabs)) {
+            foreach ($importTabs as $tab) {
+                $name = trim($tab['name'] ?? '');
+                if ($name === '') {
+                    continue;
+                }
+
+                $slug = trim($tab['slug'] ?? '');
+                if ($slug === '') {
+                    $slug = strtolower(preg_replace('/[^a-z0-9]+/i', '-', $name));
+                    $slug = trim($slug, '-');
+                    if ($slug === '') {
+                        $slug = 'tab';
+                    }
+                }
+
+                $icon = trim($tab['icon'] ?? 'T');
+                if ($icon === '') {
+                    $icon = 'T';
+                }
+
+                $position = (int)($tab['position'] ?? 0);
+
+                $stmt = $pdo->prepare("SELECT id FROM tabs WHERE user_id = ? AND name = ?");
+                $stmt->execute([$user_id, $name]);
+                $existingTab = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                if ($existingTab) {
+                    $slug = buildUniqueTabSlug($user_id, $slug, $pdo, (int)$existingTab['id']);
+                    $stmt = $pdo->prepare("UPDATE tabs SET slug = ?, icon = ?, position = ? WHERE id = ? AND user_id = ?");
+                    $stmt->execute([$slug, $icon, $position, $existingTab['id'], $user_id]);
+                    $tabMap[$tab['id']] = (int)$existingTab['id'];
+                } else {
+                    $slug = buildUniqueTabSlug($user_id, $slug, $pdo);
+                    $stmt = $pdo->prepare("INSERT INTO tabs (user_id, name, slug, icon, position) VALUES (?, ?, ?, ?, ?)");
+                    $stmt->execute([$user_id, $name, $slug, $icon, $position]);
+                    $tabMap[$tab['id']] = (int)$pdo->lastInsertId();
+                }
+            }
+        }
+
+        // Default-Tab sicherstellen
+        $stmt = $pdo->prepare("SELECT id FROM tabs WHERE user_id = ? AND slug = 'alle' LIMIT 1");
+        $stmt->execute([$user_id]);
+        $defaultTabId = $stmt->fetchColumn();
+
+        if (!$defaultTabId) {
+            $stmt = $pdo->prepare("SELECT COALESCE(MAX(position), -1) + 1 FROM tabs WHERE user_id = ?");
+            $stmt->execute([$user_id]);
+            $position = (int)$stmt->fetchColumn();
+
+            $stmt = $pdo->prepare("INSERT INTO tabs (user_id, name, slug, icon, position) VALUES (?, ?, ?, ?, ?)");
+            $stmt->execute([$user_id, 'Alle', 'alle', 'A', $position]);
+            $defaultTabId = (int)$pdo->lastInsertId();
+        } else {
+            $defaultTabId = (int)$defaultTabId;
+        }
+
+        // Kategorie-Tab-Mapping importieren oder auf Default setzen
+        $importCategoryTabs = isset($data['category_tabs']) && is_array($data['category_tabs']) ? $data['category_tabs'] : [];
+        $hasImportedCategoryTabs = false;
+
+        if (!empty($importCategoryTabs)) {
+            $insertMapStmt = $pdo->prepare("INSERT IGNORE INTO category_tabs (category_id, tab_id) VALUES (?, ?)");
+            $insertPosStmt = $pdo->prepare(
+                "INSERT INTO category_tab_positions (tab_id, category_id, position)
+                 VALUES (?, ?, ?)
+                 ON DUPLICATE KEY UPDATE position = VALUES(position)"
+            );
+
+            foreach ($importCategoryTabs as $mapping) {
+                $mappedCategoryId = $categoryMap[$mapping['category_id']] ?? null;
+                $mappedTabId = $tabMap[$mapping['tab_id']] ?? null;
+
+                if (!$mappedCategoryId || !$mappedTabId) {
+                    continue;
+                }
+
+                $insertMapStmt->execute([$mappedCategoryId, $mappedTabId]);
+                $insertPosStmt->execute([$mappedTabId, $mappedCategoryId, 0]);
+                $hasImportedCategoryTabs = true;
+            }
+        }
+
+        if (!$hasImportedCategoryTabs) {
+            $insertMapStmt = $pdo->prepare("INSERT IGNORE INTO category_tabs (category_id, tab_id) VALUES (?, ?)");
+            $insertPosStmt = $pdo->prepare(
+                "INSERT INTO category_tab_positions (tab_id, category_id, position)
+                 VALUES (?, ?, ?)
+                 ON DUPLICATE KEY UPDATE position = VALUES(position)"
+            );
+
+            foreach ($categoryMap as $originalCategoryId => $mappedCategoryId) {
+                $position = 0;
+                foreach ($data['categories'] as $category) {
+                    if ((string)$category['id'] === (string)$originalCategoryId) {
+                        $position = (int)($category['position'] ?? 0);
+                        break;
+                    }
+                }
+
+                $insertMapStmt->execute([$mappedCategoryId, $defaultTabId]);
+                $insertPosStmt->execute([$defaultTabId, $mappedCategoryId, $position]);
+            }
+        }
+
+        // Tab-spezifische Positionen importieren
+        $importPositions = isset($data['category_tab_positions']) && is_array($data['category_tab_positions'])
+            ? $data['category_tab_positions']
+            : [];
+
+        if (!empty($importPositions)) {
+            $stmt = $pdo->prepare(
+                "INSERT INTO category_tab_positions (tab_id, category_id, position)
+                 VALUES (?, ?, ?)
+                 ON DUPLICATE KEY UPDATE position = VALUES(position)"
+            );
+
+            foreach ($importPositions as $positionData) {
+                $mappedTabId = $tabMap[$positionData['tab_id']] ?? null;
+                $mappedCategoryId = $categoryMap[$positionData['category_id']] ?? null;
+
+                if (!$mappedTabId || !$mappedCategoryId) {
+                    continue;
+                }
+
+                $stmt->execute([$mappedTabId, $mappedCategoryId, (int)($positionData['position'] ?? 0)]);
+            }
+        }
+
+        // Alle Kategorien mindestens dem Default-Tab zuordnen
+        $insertMapStmt = $pdo->prepare("INSERT IGNORE INTO category_tabs (category_id, tab_id) VALUES (?, ?)");
+        $insertPosStmt = $pdo->prepare(
+            "INSERT INTO category_tab_positions (tab_id, category_id, position)
+             VALUES (?, ?, ?)
+             ON DUPLICATE KEY UPDATE position = VALUES(position)"
+        );
+
+        foreach ($categoryMap as $originalCategoryId => $mappedCategoryId) {
+            $position = 0;
+            foreach ($data['categories'] as $category) {
+                if ((string)$category['id'] === (string)$originalCategoryId) {
+                    $position = (int)($category['position'] ?? 0);
+                    break;
+                }
+            }
+
+            $insertMapStmt->execute([$mappedCategoryId, $defaultTabId]);
+            $insertPosStmt->execute([$defaultTabId, $mappedCategoryId, $position]);
         }
         
         // Favorites importieren
@@ -262,6 +479,7 @@ function importFavoritesData($user_id, $jsonData, $pdo, $update_favicons = false
             'stats' => [
                 'categories' => count($data['categories']),
                 'favorites' => count($data['favorites']),
+                'tabs' => count($importTabs),
                 'updated_favicons' => $updated_favicons
             ]
         ];

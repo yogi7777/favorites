@@ -25,6 +25,36 @@ CREATE TABLE categories (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+CREATE TABLE tabs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    slug VARCHAR(120) NOT NULL,
+    icon VARCHAR(32) DEFAULT 'T',
+    position INT DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_tabs_user_slug (user_id, slug),
+    UNIQUE KEY uq_tabs_user_name (user_id, name),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE category_tabs (
+    category_id INT NOT NULL,
+    tab_id INT NOT NULL,
+    PRIMARY KEY (category_id, tab_id),
+    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE,
+    FOREIGN KEY (tab_id) REFERENCES tabs(id) ON DELETE CASCADE
+);
+
+CREATE TABLE category_tab_positions (
+    tab_id INT NOT NULL,
+    category_id INT NOT NULL,
+    position INT DEFAULT 0,
+    PRIMARY KEY (tab_id, category_id),
+    FOREIGN KEY (tab_id) REFERENCES tabs(id) ON DELETE CASCADE,
+    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
+);
+
 CREATE TABLE favorites (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,

@@ -1,6 +1,49 @@
 body {
     font-size: 14px;
-    padding-top: 60px;
+    padding-top: 0;
+    padding-bottom: 86px;
+}
+
+.top-bar {
+    background-color: #1f252b;
+    border-bottom: 1px solid #3f4954;
+    padding: 10px 15px;
+    z-index: 1030;
+}
+
+.tabs-and-search {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.top-tab-list {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 6px;
+    padding-bottom: 2px;
+}
+
+.top-tab-link {
+    border: 1px solid #495564;
+    color: #d6dde8;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.top-tab-link.active {
+    background-color: #5f7ea1 !important;
+    border-color: #5f7ea1;
+    color: #ffffff !important;
+}
+
+.tab-icon {
+    font-size: 0.95rem;
+    line-height: 1;
 }
 
 #categories {
@@ -45,23 +88,27 @@ body {
     padding: 5px 5px 10px 10px;
 }
 
-.navbar {
+.bottom-nav {
     background-color: #343a40;
+    border-top: 1px solid #454d55;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1040;
+    min-height: 60px;
 }
 
-.navbar-brand {
-    font-size: 1.2rem;
+.bottom-nav-list {
+    gap: 8px;
 }
 
-.navbar-nav .btn {
-    width: 100%;
+.bottom-nav-btn {
+    min-width: 78px;
+    text-align: center;
 }
 
-.navbar-nav .nav-item {
-    margin: 0 5px;
-}
-
-.navbar-nav .nav-link.btn:hover {
+.bottom-nav .nav-link.btn:hover {
     background-color: #6c757d;
 }
 
@@ -113,8 +160,8 @@ body {
 }
 
 #searchForm {
-    min-width: 120px;
-    max-width: 250px;
+    min-width: 180px;
+    max-width: 300px;
 }
 .cat-edit {
     column-count: 1 !important;
@@ -160,18 +207,27 @@ footer a:active {
     #categories {
         column-count: 2; /* 2 Spalten */
     }
-    .navbar-collapse {
-        position: absolute;
-        top: 100%;
-        left: 0;
-        right: 0;
-        background-color: #000000; 
-        padding: 0.5rem 1rem;
-        z-index: 1000;
-    }
 }
 
 @media (max-width: 767px) {
+    body {
+        padding-bottom: 78px;
+    }
+
+    .tabs-and-search {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .top-tab-list {
+        width: 100%;
+    }
+
+    .top-tab-link {
+        min-width: 42px;
+        justify-content: center;
+    }
+
     #categories {
         column-count: 1; /* 1 Spalte */
     }
@@ -188,19 +244,21 @@ footer a:active {
     .accordion-button {
         font-size: 1.0rem;
     }
-    .navbar-nav .btn {
-        margin: 5px 0;
-    }
-    .navbar-nav .nav-link.btn {
-        width: 100%;
-        text-align: center;
-    }
     #searchForm {
-        min-width: 100px;
-        max-width: 250px;
+        min-width: 100%;
+        max-width: 100%;
     }
-    .navbar-brand {
-        font-size: 1.1rem;
+
+    .bottom-nav-list {
+        width: 100%;
+        justify-content: space-around;
+        gap: 4px;
+    }
+
+    .bottom-nav-btn {
+        min-width: 58px;
+        padding-left: 8px;
+        padding-right: 8px;
     }
 }
 

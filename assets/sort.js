@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const sortableContainer = document.querySelector('[data-sortable]');
     if (!sortableContainer) return;
+    const tabSlug = sortableContainer.dataset.tabSlug || 'alle';
 
     let draggedItem = null;
 
@@ -73,7 +74,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const categories = [...sortableContainer.querySelectorAll('.category')];
         const order = categories.map((cat, index) => ({
             id: cat.dataset.categoryId,
-            position: index
+            position: index,
+            tab: tabSlug
         }));
 
         fetch('update_positions.php', {

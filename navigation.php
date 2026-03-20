@@ -1,81 +1,93 @@
 <?php
-$is_admin = ($_SESSION['user_id'] == 1);
+$isAdmin = ($_SESSION['user_id'] == 1);
 $mode = $_GET['mode'] ?? 'view';
 $page = basename($_SERVER['PHP_SELF']);
-$title = ($page === 'index.php') ? 'Favorites' : ($page === 'profile.php' ? 'Profile' : 'Admin Panel');
 ?>
-<nav class="navbar fixed-top navbar-expand-lg navbar-dark">
-    <div class="container-fluid">
-        <!-- Logo links - nur auf Desktop -->
-        <a class="navbar-brand d-none d-lg-block" href="<?php echo $page === 'index.php' ? 'index.php' : 'index.php'; ?>"><?php echo $title; ?></a>
-        
-        <!-- Hamburger-Menü für mobile Ansicht - links auf Mobilgeräten -->
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        
-        <!-- Navigation links auf Desktop, ausklappbar auf Mobilgeräten -->
-        <div class="collapse navbar-collapse" id="navbarContent">
-            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-
-                <?php if ($page === 'index.php'): ?>
-
-                    <?php if ($is_admin): ?>
-                        <li class="nav-item">
-                            <a class="nav-link btn btn-secondary mx-1 my-1" href="admin.php">Admin</a>
-                        </li>
-
-                    <?php endif; ?>
-
+<nav class="bottom-nav navbar navbar-expand navbar-dark">
+    <div class="container-fluid justify-content-center">
+        <ul class="navbar-nav bottom-nav-list">
+            <?php if ($page === 'index.php'): ?>
+                <?php if ($isAdmin): ?>
                     <li class="nav-item">
-                        <a class="nav-link btn btn-secondary mx-1 my-1" href="?mode=<?php echo $mode === 'view' ? 'edit' : 'view'; ?>">
-                            <?php echo $mode === 'view' ? 'Edit' : 'Back'; ?>
+                        <a class="nav-link btn btn-secondary bottom-nav-btn" href="admin.php">
+                            <span class="d-none d-sm-inline">Admin</span>
+                            <span class="d-sm-none">🛠️</span>
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link btn btn-secondary mx-1 my-1" href="profile.php">Profile</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link btn btn-secondary mx-1 my-1" href="logout.php">Logout</a>
-                    </li>
-
-                <?php elseif ($page === 'admin.php' || $page === 'clean_png.php'): ?>
-
-                    <li class="nav-item">
-                        <a class="nav-link btn btn-secondary mx-1 my-1" href="index.php">Back</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link btn btn-secondary mx-1 my-1" href="admin.php">Admin</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link btn btn-secondary mx-1 my-1" href="clean_png.php">CleanPNG</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link btn btn-secondary mx-1 my-1" href="logout.php">Logout</a>
-                    </li>
-
-                <?php elseif ($page === 'profile.php'): ?>
-
-                    <li class="nav-item">
-                        <a class="nav-link btn btn-secondary mx-1 my-1" href="index.php">Back</a>
-                    </li>
-                    <?php if ($is_admin): ?>
-                        <li class="nav-item">
-                            <a class="nav-link btn btn-secondary mx-1 my-1" href="admin.php">Admin</a>
-                        </li>
-                    <?php endif; ?>
-                    <li class="nav-item">
-                        <a class="nav-link btn btn-secondary mx-1 my-1" href="logout.php">Logout</a>
-                    </li>
-
                 <?php endif; ?>
 
-            </ul>
-        </div>
-        
-        <!-- Suche immer rechts -->
-        <form class="d-flex ms-auto" id="searchForm">
-            <input class="form-control me-2" type="search" id="search" placeholder="🔍 <?php echo $title; ?>" aria-label="Search">
-        </form>
+                <li class="nav-item">
+                    <a class="nav-link btn btn-secondary bottom-nav-btn" href="index.php?mode=<?php echo $mode === 'view' ? 'edit' : 'view'; ?>&tab=<?php echo urlencode($_GET['tab'] ?? 'alle'); ?>">
+                        <span class="d-none d-sm-inline"><?php echo $mode === 'view' ? 'Edit' : 'Back'; ?></span>
+                        <span class="d-sm-none"><?php echo $mode === 'view' ? '✏️' : '↩️'; ?></span>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link btn btn-secondary bottom-nav-btn" href="profile.php">
+                        <span class="d-none d-sm-inline">Profile</span>
+                        <span class="d-sm-none">👤</span>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link btn btn-secondary bottom-nav-btn" href="logout.php">
+                        <span class="d-none d-sm-inline">Logout</span>
+                        <span class="d-sm-none">🚪</span>
+                    </a>
+                </li>
+            <?php elseif ($page === 'admin.php' || $page === 'clean_png.php'): ?>
+                <li class="nav-item">
+                    <a class="nav-link btn btn-secondary bottom-nav-btn" href="index.php">
+                        <span class="d-none d-sm-inline">Back</span>
+                        <span class="d-sm-none">↩️</span>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link btn btn-secondary bottom-nav-btn" href="admin.php">
+                        <span class="d-none d-sm-inline">Admin</span>
+                        <span class="d-sm-none">🛠️</span>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link btn btn-secondary bottom-nav-btn" href="clean_png.php">
+                        <span class="d-none d-sm-inline">CleanPNG</span>
+                        <span class="d-sm-none">🧹</span>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link btn btn-secondary bottom-nav-btn" href="logout.php">
+                        <span class="d-none d-sm-inline">Logout</span>
+                        <span class="d-sm-none">🚪</span>
+                    </a>
+                </li>
+            <?php elseif ($page === 'profile.php'): ?>
+                <li class="nav-item">
+                    <a class="nav-link btn btn-secondary bottom-nav-btn" href="index.php">
+                        <span class="d-none d-sm-inline">Back</span>
+                        <span class="d-sm-none">↩️</span>
+                    </a>
+                </li>
+
+                <?php if ($isAdmin): ?>
+                    <li class="nav-item">
+                        <a class="nav-link btn btn-secondary bottom-nav-btn" href="admin.php">
+                            <span class="d-none d-sm-inline">Admin</span>
+                            <span class="d-sm-none">🛠️</span>
+                        </a>
+                    </li>
+                <?php endif; ?>
+
+                <li class="nav-item">
+                    <a class="nav-link btn btn-secondary bottom-nav-btn" href="logout.php">
+                        <span class="d-none d-sm-inline">Logout</span>
+                        <span class="d-sm-none">🚪</span>
+                    </a>
+                </li>
+            <?php endif; ?>
+        </ul>
     </div>
 </nav>

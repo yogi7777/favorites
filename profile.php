@@ -237,7 +237,7 @@ $devices = getTrustedDevices($user_id);
                         Export Data
                     </div>
                     <div class="card-body">
-                        <p>Export your favorites and categories for a backup or for use in your browser.</p>
+                        <p>Export your favorites, categories and tabs for a backup or for use in your browser.</p>
                         <div class="d-flex gap-2">
                             <form method="POST" class="me-2">
                                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
@@ -254,7 +254,7 @@ $devices = getTrustedDevices($user_id);
                         </div>
                         <div class="mt-3">
                             <small class="text-muted">
-                                <i class="bi bi-info-circle"></i> JSON-Export: For backups and later import into this application.<br>
+                                <i class="bi bi-info-circle"></i> JSON-Export: For backups and later import into this application (including tabs).<br>
                                 <i class="bi bi-info-circle"></i> HTML format for direct import into your browser (Chrome, Firefox, Edge, etc.).
                             </small>
                         </div>
@@ -268,7 +268,7 @@ $devices = getTrustedDevices($user_id);
                         Import Data
                     </div>
                     <div class="card-body">
-                        <p>Import previously exported favorites and categories.</p>
+                        <p>Import previously exported favorites, categories and tabs.</p>
                         <form method="POST" enctype="multipart/form-data">
                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                             <div class="mb-3">
@@ -304,7 +304,7 @@ $devices = getTrustedDevices($user_id);
                         Delete Profil
                     </div>
                     <div class="card-body">
-                        <p><strong>DANGER:</strong> Deleting your profile irrevocably removes all your data (categories, favorites and settings).</p>
+                        <p><strong>DANGER:</strong> Deleting your profile irrevocably removes all your data (tabs, categories, favorites and settings).</p>
                         <!-- Button, der das Modal öffnet -->
                         <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteProfileModal">
                             <i class="bi bi-trash"></i> Delete Profil
