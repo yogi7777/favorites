@@ -9,12 +9,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $user_id      = $_SESSION['user_id'] ?? null;
     $id           = (int)($_POST['id'] ?? 0);
     $title        = trim($_POST['title'] ?? '');
-    $category_ids = array_values(array_filter(array_map('intval', (array)($_POST['category_ids'] ?? []))));
+    // Support both new (tab_ids[]) and old (category) format for backward compat
+    $tab_ids = array_values(array_filter(array_map('intval', (array)($_POST['tab_ids'] ?? []))));
+    if (empty($tab_ids) && isset($_POST['category'])) {
+        $tab_ids = array_filter([(int)$_POST['category']]);
+    }
     $url          = trim($_POST['url'] ?? '');
     $favicon_url  = trim($_POST['favicon_url'] ?? '');
 
     // Validierung
-    if (empty($user_id) || !$id || empty($title) || empty($category_ids) || empty($url)) {
+    if (empty($user_id) || !$id || empty($title) || empty($tab_ids) || empty($url)) {
         error_log("Fehlende Daten: user_id=$user_id, id=$id, title=$title, url=$url");
         http_response_code(400);
         echo json_encode(['error' => 'Erforderliche Daten fehlen.']);
@@ -93,18 +97,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // Primary category for backward compat column
-        $primary_cat = $category_ids[0];
+        $primary_cat = $tab_ids[0];
 
         // Update favorites row
-        $stmt = $pdo->prepare("UPDATE favorites SET title = ?, category_id = ?, url = ?, favicon_url = ? WHERE id = ? AND user_id = ?");
+        $stmt = $pdo->prepare("UPDATE favorites SET title = ?, tab_id = ?, url = ?, favicon_url = ? WHERE id = ? AND user_id = ?");
         $stmt->execute([$title, $primary_cat, $url, $favicon_url, $id, $user_id]);
 
-        // Update junction table: replace all assignments
-        $stmt = $pdo->prepare("DELETE FROM favorite_categories WHERE favorite_id = ?");
-        $stmt->execute([$id]);
-        $stmt = $pdo->prepare("INSERT IGNORE INTO favorite_categories (favorite_id, category_id) VALUES (?, ?)");
-        foreach ($category_ids as $cid) {
-            $stmt->execute([$id, $cid]);
+        // Update junction table: replace all assignments (optional, skipped if table doesn't exist yet)
+        try {
+            $stmt = $pdo->prepare("DELETE FROM favorite_tabs WHERE favorite_id = ?");
+            $stmt->execute([$id]);
+            $stmt = $pdo->prepare("INSERT IGNORE INTO favorite_tabs (favorite_id, tab_id) VALUES (?, ?)");
+            foreach ($tab_ids as $cid) {
+                $stmt->execute([$id, $cid]);
+            }
+        } catch (Exception $juncErr) {
+            // Junction table doesn't exist yet → no-op, data already in favorites.tab_id
         }
 
         http_response_code(200);

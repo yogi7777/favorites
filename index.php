@@ -6,46 +6,56 @@ checkAuth();
 $user_id = $_SESSION['user_id'];
 $mode = $_GET['mode'] ?? 'view';
 
-// Load categories sorted by position
-$stmt = $pdo->prepare("SELECT * FROM categories WHERE user_id = ? ORDER BY position ASC, name ASC");
+// Load tabs (formerly categories) sorted by position
+$stmt = $pdo->prepare("SELECT * FROM tabs WHERE user_id = ? ORDER BY position ASC, name ASC");
 $stmt->execute([$user_id]);
-$categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$tabs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Load favorites with all their category IDs via junction table
-$stmt = $pdo->prepare("
-    SELECT f.id, f.title, f.url, f.favicon_url, f.created_at,
-           GROUP_CONCAT(fc.category_id ORDER BY fc.category_id SEPARATOR ',') AS category_ids
-    FROM favorites f
-    LEFT JOIN favorite_categories fc ON f.id = fc.favorite_id
-    WHERE f.user_id = ?
-    GROUP BY f.id
-    ORDER BY f.title ASC
-");
-$stmt->execute([$user_id]);
-$all_favorites = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// Load favorites with all their tab IDs via junction table
+// Try new n:m junction table first; falls back to old single-tab if table doesn't exist yet
+$all_favorites = [];
+try {
+    $stmt = $pdo->prepare("
+        SELECT f.id, f.title, f.url, f.favicon_url, f.created_at,
+               GROUP_CONCAT(ft.tab_id ORDER BY ft.tab_id SEPARATOR ',') AS tab_ids
+        FROM favorites f
+        LEFT JOIN favorite_tabs ft ON f.id = ft.favorite_id
+        WHERE f.user_id = ?
+        GROUP BY f.id
+        ORDER BY f.title ASC
+    ");
+    $stmt->execute([$user_id]);
+    $all_favorites = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+    // Junction table doesn't exist yet → fall back to legacy single-tab query
+    // Format tab_id as a string (same format as comma-separated list from junction table)
+    $stmt = $pdo->prepare("SELECT id, title, url, favicon_url, created_at, CAST(tab_id AS CHAR) AS tab_ids FROM favorites WHERE user_id = ? AND tab_id IS NOT NULL ORDER BY title ASC");
+    $stmt->execute([$user_id]);
+    $all_favorites = $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
 
-// Build per-category lookups
-$favorites_by_category = [];
+// Build per-tab lookups
+$favorites_by_tab = [];
 foreach ($all_favorites as &$fav) {
-    $fav['cat_ids_array'] = $fav['category_ids']
-        ? array_map('intval', explode(',', $fav['category_ids']))
+    $fav['tab_ids_array'] = $fav['tab_ids']
+        ? array_map('intval', explode(',', $fav['tab_ids']))
         : [];
-    foreach ($fav['cat_ids_array'] as $cid) {
-        $favorites_by_category[$cid][] = $fav;
+    foreach ($fav['tab_ids_array'] as $tid) {
+        $favorites_by_tab[$tid][] = $fav;
     }
 }
 unset($fav);
 
-// Handle categories-mode POST actions
+// Handle tabs-mode POST actions
 if ($mode === 'categories') {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (isset($_POST['add_category'])) {
             $name = trim($_POST['name'] ?? '');
             if ($name !== '') {
-                $stmt = $pdo->prepare("SELECT COALESCE(MAX(position), -1) FROM categories WHERE user_id = ?");
+                $stmt = $pdo->prepare("SELECT COALESCE(MAX(position), -1) FROM tabs WHERE user_id = ?");
                 $stmt->execute([$user_id]);
                 $max_position = (int)$stmt->fetchColumn();
-                $stmt = $pdo->prepare("INSERT INTO categories (user_id, name, position) VALUES (?, ?, ?)");
+                $stmt = $pdo->prepare("INSERT INTO tabs (user_id, name, position) VALUES (?, ?, ?)");
                 $stmt->execute([$user_id, $name, $max_position + 1]);
             }
             header('Location: index.php?mode=categories');
@@ -54,7 +64,7 @@ if ($mode === 'categories') {
             $id   = (int)($_POST['id']   ?? 0);
             $name = trim($_POST['name'] ?? '');
             if ($id && $name !== '') {
-                $stmt = $pdo->prepare("UPDATE categories SET name = ? WHERE id = ? AND user_id = ?");
+                $stmt = $pdo->prepare("UPDATE tabs SET name = ? WHERE id = ? AND user_id = ?");
                 $stmt->execute([$name, $id, $user_id]);
             }
             header('Location: index.php?mode=categories');
@@ -62,17 +72,17 @@ if ($mode === 'categories') {
         } elseif (isset($_POST['delete_category'])) {
             $id = (int)($_POST['id'] ?? 0);
             if ($id) {
-                // Deleting the category cascades in favorite_categories automatically.
-                // Favorites themselves are NOT deleted – only their assignment to this category.
-                $stmt = $pdo->prepare("DELETE FROM categories WHERE id = ? AND user_id = ?");
+                // Deleting the tab cascades in favorite_tabs automatically.
+                // Favorites themselves are NOT deleted – only their assignment to this tab.
+                $stmt = $pdo->prepare("DELETE FROM tabs WHERE id = ? AND user_id = ?");
                 $stmt->execute([$id, $user_id]);
                 // Renormalize positions
-                $stmt = $pdo->prepare("SELECT id FROM categories WHERE user_id = ? ORDER BY position ASC");
+                $stmt = $pdo->prepare("SELECT id FROM tabs WHERE user_id = ? ORDER BY position ASC");
                 $stmt->execute([$user_id]);
                 $remaining = $stmt->fetchAll(PDO::FETCH_COLUMN);
-                $upd = $pdo->prepare("UPDATE categories SET position = ? WHERE id = ? AND user_id = ?");
-                foreach ($remaining as $index => $catId) {
-                    $upd->execute([$index, $catId, $user_id]);
+                $upd = $pdo->prepare("UPDATE tabs SET position = ? WHERE id = ? AND user_id = ?");
+                foreach ($remaining as $index => $tabId) {
+                    $upd->execute([$index, $tabId, $user_id]);
                 }
             }
             header('Location: index.php?mode=categories');
@@ -80,9 +90,9 @@ if ($mode === 'categories') {
         }
     }
     // Reload after possible POST
-    $stmt = $pdo->prepare("SELECT * FROM categories WHERE user_id = ? ORDER BY position ASC, name ASC");
+    $stmt = $pdo->prepare("SELECT * FROM tabs WHERE user_id = ? ORDER BY position ASC, name ASC");
     $stmt->execute([$user_id]);
-    $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $tabs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 ?>
 <!DOCTYPE html>
@@ -99,7 +109,7 @@ if ($mode === 'categories') {
     <div class="container-fluid p-0 m-0">
         <?php include 'navigation.php'; ?>
 
-        <?php if (count($categories) > 0): ?>
+        <?php if (count($tabs) > 0): ?>
             <div class="row mx-auto col-md-12">
                 <button class="btn btn-link text-decoration-none p-0" type="button"
                         data-bs-toggle="collapse" data-bs-target="#urlCollapse"
@@ -137,21 +147,21 @@ if ($mode === 'categories') {
         <?php if ($mode !== 'categories'): ?>
         <!-- ===== Category Tabs Navigation ===== -->
         <div class="px-3 pt-2 pb-0">
-            <ul class="nav nav-tabs category-tabs" id="categoryTabs" role="tablist"
+            <ul class="nav nav-tabs tab-list" id="categoryTabs" role="tablist"
                 <?php if ($mode === 'edit'): ?>data-tab-sortable<?php endif; ?>>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="tab-all-btn"
                             data-bs-toggle="tab" data-bs-target="#tab-all"
                             type="button" role="tab" draggable="false">Alle</button>
                 </li>
-                <?php foreach ($categories as $cat): ?>
+                <?php foreach ($tabs as $cat): ?>
                 <li class="nav-item tab-sortable-item" role="presentation"
-                    data-category-id="<?php echo $cat['id']; ?>"
+                    data-tab-id="<?php echo $tab['id']; ?>"
                     <?php if ($mode === 'edit'): ?>draggable="true"<?php endif; ?>>
-                    <button class="nav-link" id="tab-<?php echo $cat['id']; ?>-btn"
-                            data-bs-toggle="tab" data-bs-target="#tab-<?php echo $cat['id']; ?>"
+                    <button class="nav-link" id="tab-<?php echo $tab['id']; ?>-btn"
+                            data-bs-toggle="tab" data-bs-target="#tab-<?php echo $tab['id']; ?>"
                             type="button" role="tab" draggable="false">
-                        <?php echo htmlspecialchars($cat['name']); ?>
+                        <?php echo htmlspecialchars($tab['name']); ?>
                     </button>
                 </li>
                 <?php endforeach; ?>
@@ -164,20 +174,20 @@ if ($mode === 'categories') {
             <!-- ALL tab: masonry layout with all categories -->
             <div class="tab-pane fade show active" id="tab-all" role="tabpanel">
                 <div id="categories">
-                    <?php foreach ($categories as $cat): ?>
-                        <div class="category" data-category-id="<?php echo $cat['id']; ?>"
+                    <?php foreach ($tabs as $cat): ?>
+                        <div class="category" data-tab-id="<?php echo $tab['id']; ?>"
                              ondrop="drop(event)" ondragover="allowDrop(event)"
                              ondragleave="this.classList.remove('dragover')">
                             <div class="card category-card">
                                 <div class="card-header">
-                                    <h5 class="card-title"><?php echo htmlspecialchars($cat['name']); ?></h5>
+                                    <h5 class="card-title"><?php echo htmlspecialchars($tab['name']); ?></h5>
                                 </div>
                                 <div class="card-body">
-                                    <?php foreach ($favorites_by_category[$cat['id']] ?? [] as $fav): ?>
+                                    <?php foreach ($favorites_by_tab[$tab['id']] ?? [] as $fav): ?>
                                         <div class="favorite"
                                              data-id="<?php echo $fav['id']; ?>"
                                              data-title="<?php echo htmlspecialchars($fav['title']); ?>"
-                                             data-category-ids="<?php echo htmlspecialchars($fav['category_ids'] ?? ''); ?>">
+                                             data-tab-ids="<?php echo htmlspecialchars($fav['tab_ids'] ?? ''); ?>">
                                             <img src="<?php echo htmlspecialchars($fav['favicon_url'] ?? ''); ?>" alt="Favicon" class="favicon">
                                             <a href="<?php echo htmlspecialchars($fav['url']); ?>"
                                                target="_blank"
@@ -199,17 +209,17 @@ if ($mode === 'categories') {
             </div>
 
             <!-- Individual category tabs -->
-            <?php foreach ($categories as $cat): ?>
-            <div class="tab-pane fade" id="tab-<?php echo $cat['id']; ?>" role="tabpanel" data-category-id="<?php echo $cat['id']; ?>">
+            <?php foreach ($tabs as $cat): ?>
+            <div class="tab-pane fade" id="tab-<?php echo $tab['id']; ?>" role="tabpanel" data-tab-id="<?php echo $tab['id']; ?>">
                 <div class="single-category-panel px-3 pt-3"
-                     data-category-id="<?php echo $cat['id']; ?>"
+                     data-tab-id="<?php echo $tab['id']; ?>"
                      ondrop="drop(event)" ondragover="allowDrop(event)"
                      ondragleave="this.classList.remove('dragover')">
-                    <?php foreach ($favorites_by_category[$cat['id']] ?? [] as $fav): ?>
+                    <?php foreach ($favorites_by_tab[$tab['id']] ?? [] as $fav): ?>
                         <div class="favorite"
                              data-id="<?php echo $fav['id']; ?>"
                              data-title="<?php echo htmlspecialchars($fav['title']); ?>"
-                             data-category-ids="<?php echo htmlspecialchars($fav['category_ids'] ?? ''); ?>">
+                             data-tab-ids="<?php echo htmlspecialchars($fav['tab_ids'] ?? ''); ?>">
                             <img src="<?php echo htmlspecialchars($fav['favicon_url'] ?? ''); ?>" alt="Favicon" class="favicon">
                             <a href="<?php echo htmlspecialchars($fav['url']); ?>"
                                target="_blank"
@@ -258,16 +268,16 @@ if ($mode === 'categories') {
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php foreach ($categories as $cat): ?>
-                                    <tr class="category-row" data-name="<?php echo htmlspecialchars($cat['name']); ?>">
-                                        <td><?php echo $cat['id']; ?></td>
-                                        <td><?php echo htmlspecialchars($cat['name']); ?></td>
+                                <?php foreach ($tabs as $cat): ?>
+                                    <tr class="category-row" data-name="<?php echo htmlspecialchars($tab['name']); ?>">
+                                        <td><?php echo $tab['id']; ?></td>
+                                        <td><?php echo htmlspecialchars($tab['name']); ?></td>
                                         <td>
                                             <button class="btn btn-sm btn-outline-warning edit-category"
-                                                    data-id="<?php echo $cat['id']; ?>"
-                                                    data-name="<?php echo htmlspecialchars($cat['name']); ?>">Edit</button>
+                                                    data-id="<?php echo $tab['id']; ?>"
+                                                    data-name="<?php echo htmlspecialchars($tab['name']); ?>">Edit</button>
                                             <form method="POST" style="display:inline;">
-                                                <input type="hidden" name="id" value="<?php echo $cat['id']; ?>">
+                                                <input type="hidden" name="id" value="<?php echo $tab['id']; ?>">
                                                 <button type="submit" name="delete_category"
                                                         class="btn btn-sm btn-outline-danger"
                                                         onclick="return confirm('Delete this category? Favorites will NOT be deleted — only their assignment to this category is removed.');">
@@ -303,14 +313,14 @@ if ($mode === 'categories') {
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Categories</label>
-                            <div id="add-category-checkboxes" class="category-checkbox-list border rounded p-2">
-                                <?php foreach ($categories as $cat): ?>
+                            <div id="add-tab-checkboxes" class="tab-checkbox-list border rounded p-2">
+                                <?php foreach ($tabs as $cat): ?>
                                     <div class="form-check">
                                         <input class="form-check-input" type="checkbox"
-                                               value="<?php echo $cat['id']; ?>"
-                                               id="add_cat_<?php echo $cat['id']; ?>">
-                                        <label class="form-check-label" for="add_cat_<?php echo $cat['id']; ?>">
-                                            <?php echo htmlspecialchars($cat['name']); ?>
+                                               value="<?php echo $tab['id']; ?>"
+                                               id="add_cat_<?php echo $tab['id']; ?>">
+                                        <label class="form-check-label" for="add_cat_<?php echo $tab['id']; ?>">
+                                            <?php echo htmlspecialchars($tab['name']); ?>
                                         </label>
                                     </div>
                                 <?php endforeach; ?>
@@ -350,14 +360,14 @@ if ($mode === 'categories') {
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Categories</label>
-                            <div id="edit-category-checkboxes" class="category-checkbox-list border rounded p-2">
-                                <?php foreach ($categories as $cat): ?>
+                            <div id="edit-tab-checkboxes" class="tab-checkbox-list border rounded p-2">
+                                <?php foreach ($tabs as $cat): ?>
                                     <div class="form-check">
                                         <input class="form-check-input" type="checkbox"
-                                               value="<?php echo $cat['id']; ?>"
-                                               id="edit_cat_<?php echo $cat['id']; ?>">
-                                        <label class="form-check-label" for="edit_cat_<?php echo $cat['id']; ?>">
-                                            <?php echo htmlspecialchars($cat['name']); ?>
+                                               value="<?php echo $tab['id']; ?>"
+                                               id="edit_cat_<?php echo $tab['id']; ?>">
+                                        <label class="form-check-label" for="edit_cat_<?php echo $tab['id']; ?>">
+                                            <?php echo htmlspecialchars($tab['name']); ?>
                                         </label>
                                     </div>
                                 <?php endforeach; ?>
@@ -397,7 +407,7 @@ if ($mode === 'categories') {
                             <label for="edit_category_name" class="form-label">Name</label>
                             <input type="text" class="form-control" id="edit_category_name" name="name" required>
                         </div>
-                        <input type="hidden" id="edit_category_id" name="id">
+                        <input type="hidden" id="edit_tab_id" name="id">
                     </div>
                     <div class="modal-footer">
                         <button type="submit" name="edit_category" class="btn btn-primary">Save</button>

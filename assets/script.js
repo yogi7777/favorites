@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const favoriteModal = document.getElementById('favoriteModal');
     const editModal     = document.getElementById('editFavoriteModal');
-    const categoryModal = document.getElementById('editCategoryModal');
+    const tabModal = document.getElementById('editCategoryModal');
 
     // ── Restore last active tab ──────────────────────────────────────────
     const savedTab = localStorage.getItem('activeCategoryTab');
@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const tabEl = document.querySelector(`[data-bs-target="${savedTab}"]`);
         if (tabEl) new bootstrap.Tab(tabEl).show();
     }
-    document.querySelectorAll('#categoryTabs [data-bs-toggle="tab"]').forEach(tabEl => {
+    document.querySelectorAll('#tabTabs [data-bs-toggle="tab"]').forEach(tabEl => {
         tabEl.addEventListener('shown.bs.tab', (e) => {
             localStorage.setItem('activeCategoryTab', e.target.dataset.bsTarget);
         });
@@ -32,10 +32,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!url) return;
             document.getElementById('url').value = url;
 
-            // Pre-select active tab category (if not "Alle")
+            // Pre-select active tab tab (if not "Alle")
             const activePane       = document.querySelector('.tab-pane.show.active');
-            const activeCategoryId = activePane?.dataset?.categoryId || null;
-            document.querySelectorAll('#add-category-checkboxes input[type=checkbox]').forEach(cb => {
+            const activeCategoryId = activePane?.dataset?.tabId || null;
+            document.querySelectorAll('#add-tab-checkboxes input[type=checkbox]').forEach(cb => {
                 cb.checked = activeCategoryId ? (cb.value === String(activeCategoryId)) : false;
             });
 
@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const titleInput    = document.getElementById('title');
             const urlInputModal = document.getElementById('url');
             const faviconInput  = document.getElementById('favicon_url');
-            const selectedCats  = [...document.querySelectorAll('#add-category-checkboxes input[type=checkbox]:checked')].map(cb => cb.value);
+            const selectedCats  = [...document.querySelectorAll('#add-tab-checkboxes input[type=checkbox]:checked')].map(cb => cb.value);
             const title         = titleInput.value.trim();
             const url           = urlInputModal.value.trim();
             const favicon_url   = faviconInput.value.trim();
@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const params = new URLSearchParams({ title, url, favicon_url });
-            selectedCats.forEach(c => params.append('category_ids[]', c));
+            selectedCats.forEach(c => params.append('tab_ids[]', c));
 
             fetch('save_favorite.php', {
                 method: 'POST',
@@ -94,14 +94,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const title       = fav.dataset.title;
                 const url         = fav.querySelector('a').getAttribute('href');
                 const favicon     = fav.querySelector('img').getAttribute('src');
-                const categoryIds = (fav.dataset.categoryIds || '').split(',').filter(Boolean);
+                const tabIds = (fav.dataset.tabIds || '').split(',').filter(Boolean);
 
                 document.getElementById('edit_id').value          = id;
                 document.getElementById('edit_title').value       = title;
                 document.getElementById('edit_url').value         = url;
                 document.getElementById('edit_favicon_url').value = favicon;
-                document.querySelectorAll('#edit-category-checkboxes input[type=checkbox]').forEach(cb => {
-                    cb.checked = categoryIds.includes(cb.value);
+                document.querySelectorAll('#edit-tab-checkboxes input[type=checkbox]').forEach(cb => {
+                    cb.checked = tabIds.includes(cb.value);
                 });
                 modal.show();
             });
@@ -133,7 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const titleInput   = document.getElementById('edit_title');
                 const urlInput     = document.getElementById('edit_url');
                 const faviconInput = document.getElementById('edit_favicon_url');
-                const selectedCats = [...document.querySelectorAll('#edit-category-checkboxes input[type=checkbox]:checked')].map(cb => cb.value);
+                const selectedCats = [...document.querySelectorAll('#edit-tab-checkboxes input[type=checkbox]:checked')].map(cb => cb.value);
 
                 if (!idInput || !titleInput || !urlInput || !faviconInput) {
                     alert('Ein Fehler ist aufgetreten. Bitte das Formular prüfen.');
@@ -169,7 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 const params = new URLSearchParams({ id, title, url, favicon_url });
-                selectedCats.forEach(c => params.append('category_ids[]', c));
+                selectedCats.forEach(c => params.append('tab_ids[]', c));
 
                 fetch('edit_favorite.php', {
                     method: 'POST',
@@ -184,33 +184,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ── CATEGORY EDIT MODAL ──────────────────────────────────────────────
-    if (categoryModal) {
-        const modal = new bootstrap.Modal(categoryModal);
-        document.querySelectorAll('.edit-category').forEach(btn => {
+    if (tabModal) {
+        const modal = new bootstrap.Modal(tabModal);
+        document.querySelectorAll('.edit-tab').forEach(btn => {
             btn.addEventListener('click', () => {
-                document.getElementById('edit_category_id').value   = btn.dataset.id;
-                document.getElementById('edit_category_name').value = btn.dataset.name;
+                document.getElementById('edit_tab_id').value   = btn.dataset.id;
+                document.getElementById('edit_tab_name').value = btn.dataset.name;
                 modal.show();
             });
         });
     }
 
-    // ── DRAG & DROP (external URL onto a category tile) ──────────────────
+    // ── DRAG & DROP (external URL onto a tab tile) ──────────────────
     window.allowDrop = function(event) {
         event.preventDefault();
-        const target = event.target.closest('.category') || event.target.closest('.single-category-panel');
+        const target = event.target.closest('.tab') || event.target.closest('.single-tab-panel');
         if (target) target.classList.add('dragover');
     };
 
     window.drop = function(event) {
         event.preventDefault();
         const url   = event.dataTransfer.getData('text');
-        const catEl = event.target.closest('.category') || event.target.closest('.single-category-panel');
-        const catId = catEl?.dataset?.categoryId || null;
+        const catEl = event.target.closest('.tab') || event.target.closest('.single-tab-panel');
+        const catId = catEl?.dataset?.tabId || null;
         if (catEl) catEl.classList.remove('dragover');
         if (url) {
             document.getElementById('url').value = url;
-            document.querySelectorAll('#add-category-checkboxes input[type=checkbox]').forEach(cb => {
+            document.querySelectorAll('#add-tab-checkboxes input[type=checkbox]').forEach(cb => {
                 cb.checked = catId ? (cb.value === String(catId)) : false;
             });
             fetchTitle(url).then(title => {
@@ -245,22 +245,22 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (query === '') {
-                document.querySelectorAll('.category').forEach(category => {
-                    category.style.display = '';
-                    category.querySelectorAll('.favorite').forEach(fav => { fav.style.display = ''; });
+                document.querySelectorAll('.tab').forEach(tab => {
+                    tab.style.display = '';
+                    tab.querySelectorAll('.favorite').forEach(fav => { fav.style.display = ''; });
                 });
-                document.querySelectorAll('.category-row').forEach(row => { row.style.display = ''; });
+                document.querySelectorAll('.tab-row').forEach(row => { row.style.display = ''; });
                 document.querySelectorAll('.user-row').forEach(row => { row.style.display = ''; });
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 return;
             }
 
-            document.querySelectorAll('.category').forEach(category => {
-                const titleEl  = category.querySelector('.card-title');
+            document.querySelectorAll('.tab').forEach(tab => {
+                const titleEl  = tab.querySelector('.card-title');
                 const catTitle = titleEl ? titleEl.textContent.toLowerCase() : '';
-                const favs     = category.querySelectorAll('.favorite');
+                const favs     = tab.querySelectorAll('.favorite');
                 if (catTitle.includes(query)) {
-                    category.style.display = '';
+                    tab.style.display = '';
                     favs.forEach(fav => { fav.style.display = ''; });
                 } else {
                     let hasVisible = false;
@@ -269,11 +269,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         fav.style.display = match ? '' : 'none';
                         if (match) hasVisible = true;
                     });
-                    category.style.display = hasVisible ? '' : 'none';
+                    tab.style.display = hasVisible ? '' : 'none';
                 }
             });
 
-            document.querySelectorAll('.category-row').forEach(row => {
+            document.querySelectorAll('.tab-row').forEach(row => {
                 row.style.display = row.dataset.name.toLowerCase().includes(query) ? '' : 'none';
             });
             document.querySelectorAll('.user-row').forEach(row => {
