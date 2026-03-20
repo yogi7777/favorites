@@ -64,6 +64,27 @@ $page = basename($_SERVER['PHP_SELF']);
                         <span class="d-sm-none">🚪</span>
                     </a>
                 </li>
+            <?php elseif ($page === 'categories.php' || $page === 'tabs.php'): ?>
+                <li class="nav-item">
+                    <a class="nav-link btn btn-secondary bottom-nav-btn" href="index.php?tab=<?php echo urlencode($_GET['tab'] ?? 'alle'); ?>">
+                        <span class="d-none d-sm-inline">Back</span>
+                        <span class="d-sm-none">↩️</span>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link btn btn-secondary bottom-nav-btn" href="profile.php">
+                        <span class="d-none d-sm-inline">Profile</span>
+                        <span class="d-sm-none">👤</span>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link btn btn-secondary bottom-nav-btn" href="logout.php">
+                        <span class="d-none d-sm-inline">Logout</span>
+                        <span class="d-sm-none">🚪</span>
+                    </a>
+                </li>
             <?php elseif ($page === 'profile.php'): ?>
                 <li class="nav-item">
                     <a class="nav-link btn btn-secondary bottom-nav-btn" href="index.php">

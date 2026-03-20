@@ -322,98 +322,100 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Suche
     const searchInput = document.getElementById('search');
+    const searchResults = document.getElementById('searchResults');
+    const categoriesContainer = document.getElementById('categories');
+
     if (searchInput) {
         searchInput.addEventListener('input', () => {
-            const query = searchInput.value.toLowerCase();
+            const query = searchInput.value.toLowerCase().trim();
 
-            // Wenn das Suchfeld leer ist, alles zurücksetzen
+            // Suchfeld leer → alles zurücksetzen
             if (query === '') {
-                // View- und Edit-Modus (Kacheln)
-                const categories = document.querySelectorAll('.category');
-                if (categories.length > 0) {
-                    categories.forEach(category => {
-                        category.style.display = '';
-                        const favoritesInCategory = category.querySelectorAll('.favorite');
-                        favoritesInCategory.forEach(fav => {
-                            fav.style.display = '';
-                        });
-                    });
+                if (searchResults) {
+                    searchResults.classList.add('d-none');
+                    searchResults.innerHTML = '';
+                }
+                if (categoriesContainer) {
+                    categoriesContainer.classList.remove('d-none');
                 }
 
-                // Categories-Modus (Tabelle)
-                const categoryRows = document.querySelectorAll('.category-row');
-                if (categoryRows.length > 0) {
-                    categoryRows.forEach(row => {
-                        row.style.display = '';
-                    });
-                }
-
-                // Admin-Modus (Tabelle)
-                const userRows = document.querySelectorAll('.user-row');
-                if (userRows.length > 0) {
-                    userRows.forEach(row => {
-                        row.style.display = '';
-                    });
-                }
-
-                // Scroll zurück nach oben
+                // DOM-Kacheln zurücksetzen (für DOM-basierte Suche)
+                document.querySelectorAll('.category').forEach(cat => {
+                    cat.style.display = '';
+                    cat.querySelectorAll('.favorite').forEach(fav => { fav.style.display = ''; });
+                });
+                document.querySelectorAll('.category-row').forEach(row => { row.style.display = ''; });
+                document.querySelectorAll('.user-row').forEach(row => { row.style.display = ''; });
                 window.scrollTo({ top: 0, behavior: 'smooth' });
-
-                return; // Beende die Funktion hier
+                return;
             }
 
-            // Bestehende Logik für die Suche
-            const categories = document.querySelectorAll('.category');
-            if (categories.length > 0) {
-                categories.forEach(category => {
-                    const title = category.querySelector('.card-title').textContent.toLowerCase();
-                    const favoritesInCategory = category.querySelectorAll('.favorite');
+            // Tab-übergreifende Suche: favSearchData aus PHP (alle Favoriten, alle Tabs)
+            if (window.favSearchData && searchResults && categoriesContainer) {
+                const html = [];
+                window.favSearchData.forEach(cat => {
+                    const catMatch = cat.name.toLowerCase().includes(query);
+                    const matchingFavs = cat.favorites.filter(f => f.title.toLowerCase().includes(query));
 
-                    if (title.includes(query)) {
-                        category.style.display = '';
-                        favoritesInCategory.forEach(fav => {
+                    if (!catMatch && matchingFavs.length === 0) return;
+
+                    const favsToShow = catMatch ? cat.favorites : matchingFavs;
+                    if (favsToShow.length === 0 && !catMatch) return;
+
+                    html.push('<div class="category search-result-card">');
+                    html.push('<div class="card category-card">');
+                    html.push('<div class="card-header"><h5 class="card-title">' + escapeHtml(cat.name) + '</h5></div>');
+                    html.push('<div class="card-body">');
+                    (catMatch ? cat.favorites : matchingFavs).forEach(fav => {
+                        html.push('<div class="favorite" data-title="' + escapeHtml(fav.title) + '">');
+                        html.push('<img src="' + escapeHtml(fav.favicon_url) + '" alt="Favicon" class="favicon">');
+                        html.push('<a href="' + escapeHtml(fav.url) + '" target="_blank">' + escapeHtml(fav.title) + '</a>');
+                        html.push('</div>');
+                    });
+                    html.push('</div></div></div>');
+                });
+
+                if (html.length > 0) {
+                    searchResults.innerHTML = html.join('');
+                } else {
+                    searchResults.innerHTML = '<p class="text-muted mt-3">Keine Ergebnisse für „' + escapeHtml(query) + '"</p>';
+                }
+                searchResults.classList.remove('d-none');
+                categoriesContainer.classList.add('d-none');
+                return;
+            }
+
+            // Fallback: DOM-basierte Suche (categories-Modus / admin)
+            document.querySelectorAll('.category').forEach(category => {
+                const title = category.querySelector('.card-title').textContent.toLowerCase();
+                const favs = category.querySelectorAll('.favorite');
+                if (title.includes(query)) {
+                    category.style.display = '';
+                    favs.forEach(fav => { fav.style.display = ''; });
+                } else {
+                    let hasMatch = false;
+                    favs.forEach(fav => {
+                        if (fav.dataset.title.toLowerCase().includes(query)) {
                             fav.style.display = '';
-                        });
-                    } else {
-                        let hasVisibleFavorites = false;
-                        favoritesInCategory.forEach(fav => {
-                            const favTitle = fav.dataset.title.toLowerCase();
-                            if (favTitle.includes(query)) {
-                                fav.style.display = '';
-                                hasVisibleFavorites = true;
-                            } else {
-                                fav.style.display = 'none';
-                            }
-                        });
-                        category.style.display = hasVisibleFavorites ? '' : 'none';
-                    }
-                });
-            }
-
-            const categoryRows = document.querySelectorAll('.category-row');
-            if (categoryRows.length > 0) {
-                categoryRows.forEach(row => {
-                    const name = row.dataset.name.toLowerCase();
-                    if (name.includes(query)) {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
-                    }
-                });
-            }
-
-            const userRows = document.querySelectorAll('.user-row');
-            if (userRows.length > 0) {
-                userRows.forEach(row => {
-                    const username = row.dataset.username.toLowerCase();
-                    if (username.includes(query)) {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
-                    }
-                });
-            }
+                            hasMatch = true;
+                        } else {
+                            fav.style.display = 'none';
+                        }
+                    });
+                    category.style.display = hasMatch ? '' : 'none';
+                }
+            });
+            document.querySelectorAll('.category-row').forEach(row => {
+                row.style.display = row.dataset.name.toLowerCase().includes(query) ? '' : 'none';
+            });
+            document.querySelectorAll('.user-row').forEach(row => {
+                row.style.display = row.dataset.username.toLowerCase().includes(query) ? '' : 'none';
+            });
         });
+    }
+
+    function escapeHtml(str) {
+        return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     tooltipTriggerList.forEach(function (tooltipTriggerEl) {
