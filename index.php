@@ -15,6 +15,14 @@ function slugifyTabName(string $value): string {
     return substr($value, 0, 120);
 }
 
+function extractFirstEmoji(string $name): string {
+    // Return first non-whitespace token (typically the emoji)
+    if (preg_match('/^\S+/u', trim($name), $m)) {
+        return $m[0];
+    }
+    return mb_substr($name, 0, 1);
+}
+
 function uniqueTabSlug(PDO $pdo, int $userId, string $baseSlug, ?int $excludeId = null): string {
     $slug = $baseSlug;
     $suffix = 2;
@@ -103,10 +111,6 @@ $activeTabId = $activeTab['id'] ?? null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['add_tab'])) {
         $name = trim($_POST['name'] ?? '');
-        $icon = trim($_POST['icon'] ?? 'T');
-        if ($icon === '') {
-            $icon = 'T';
-        }
 
         if ($name !== '') {
             $baseSlug = slugifyTabName($name);
@@ -117,7 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $position = (int)$stmt->fetchColumn();
 
             $stmt = $pdo->prepare('INSERT INTO tabs (user_id, name, slug, icon, position) VALUES (?, ?, ?, ?, ?)');
-            $stmt->execute([$userId, $name, $slug, $icon, $position]);
+            $stmt->execute([$userId, $name, $slug, 'T', $position]);
         }
 
         header('Location: index.php?mode=tabs&tab=' . urlencode($activeTabSlug));
@@ -170,6 +174,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if ($activeTabId === $tabId) {
                     $activeTabSlug = 'alle';
+                }
+            }
+        }
+
+        header('Location: index.php?mode=tabs&tab=' . urlencode($activeTabSlug));
+        exit;
+    }
+
+    if (isset($_POST['save_all_tabs'])) {
+        $tabIds       = $_POST['tab_ids']       ?? [];
+        $tabNames     = $_POST['tab_names']     ?? [];
+        $tabPositions = $_POST['tab_positions'] ?? [];
+
+        foreach ($tabIds as $rawId) {
+            $tabId    = (int)$rawId;
+            $name     = trim($tabNames[$tabId]     ?? '');
+            $position = (int)($tabPositions[$tabId] ?? 0);
+
+            if ($tabId > 0 && $name !== '') {
+                $stmt = $pdo->prepare('SELECT id, slug FROM tabs WHERE id = ? AND user_id = ? LIMIT 1');
+                $stmt->execute([$tabId, $userId]);
+                $existingTab = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                if ($existingTab) {
+                    $newSlug = $existingTab['slug'];
+                    if ($existingTab['slug'] !== 'alle') {
+                        $newSlug = uniqueTabSlug($pdo, $userId, slugifyTabName($name), $tabId);
+                    }
+
+                    $stmt = $pdo->prepare('UPDATE tabs SET name = ?, slug = ?, position = ? WHERE id = ? AND user_id = ?');
+                    $stmt->execute([$name, $newSlug, $position, $tabId, $userId]);
+
+                    if ($activeTabId === $tabId) {
+                        $activeTabSlug = $newSlug;
+                    }
                 }
             }
         }
@@ -404,7 +443,7 @@ if ($mode === 'categories') {
                 <ul class="nav nav-pills top-tab-list">
                     <li class="nav-item">
                         <a class="nav-link top-tab-link <?php echo $activeTabSlug === 'alle' ? 'active' : ''; ?>" href="index.php?mode=<?php echo urlencode($mode); ?>&tab=alle" title="Alle">
-                            <span class="tab-icon">🏠</span>
+                            <span class="tab-icon d-sm-none">🏠</span>
                             <span class="tab-label d-none d-sm-inline">Alle</span>
                         </a>
                     </li>
@@ -412,7 +451,7 @@ if ($mode === 'categories') {
                         <?php if ($tab['slug'] === 'alle') continue; ?>
                         <li class="nav-item">
                             <a class="nav-link top-tab-link <?php echo $activeTabSlug === $tab['slug'] ? 'active' : ''; ?>" href="index.php?mode=<?php echo urlencode($mode); ?>&tab=<?php echo urlencode($tab['slug']); ?>" title="<?php echo htmlspecialchars($tab['name']); ?>">
-                                <span class="tab-icon"><?php echo htmlspecialchars($tab['icon']); ?></span>
+                                <span class="tab-icon d-sm-none"><?php echo htmlspecialchars(extractFirstEmoji($tab['name'])); ?></span>
                                 <span class="tab-label d-none d-sm-inline"><?php echo htmlspecialchars($tab['name']); ?></span>
                             </a>
                         </li>
@@ -462,69 +501,66 @@ if ($mode === 'categories') {
 
         <?php if ($mode === 'tabs'): ?>
             <div class="row cat-edit px-3">
-                <h2>Tabs</h2>
                 <div class="col-12">
+                    <?php foreach ($tabs as $tab): ?>
+                        <?php if ($tab['slug'] !== 'alle'): ?>
+                            <form method="POST" id="delete-tab-<?php echo (int)$tab['id']; ?>" style="display:none;">
+                                <input type="hidden" name="id" value="<?php echo (int)$tab['id']; ?>">
+                            </form>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2 class="mb-0">Tabs</h2>
+                        <button type="submit" form="save-all-tabs-form" name="save_all_tabs" class="btn btn-primary">Speichern</button>
+                    </div>
+
                     <form method="POST" class="mb-4 row g-2">
-                        <div class="col-md-6 col-12">
+                        <div class="col-md-8 col-12">
                             <input type="text" name="name" class="form-control" placeholder="Tab Name" required>
                         </div>
-                        <div class="col-md-2 col-12">
-                            <input type="text" name="icon" class="form-control" placeholder="Icon" maxlength="8">
-                        </div>
                         <div class="col-md-4 col-12">
-                            <button type="submit" name="add_tab" class="btn btn-primary w-100">Add Tab</button>
+                            <button type="submit" name="add_tab" class="btn btn-secondary w-100">Add Tab</button>
                         </div>
                     </form>
-                </div>
 
-                <div class="col-12">
-                    <div class="table-responsive">
-                        <table class="table table-dark align-middle">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Icon</th>
-                                    <th>Name</th>
-                                    <th>Slug</th>
-                                    <th>Position</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($tabs as $tab): ?>
-                                    <?php $editFormId = 'edit-tab-' . (int)$tab['id']; ?>
+                    <form method="POST" id="save-all-tabs-form">
+                        <div class="table-responsive">
+                            <table class="table table-dark align-middle">
+                                <thead>
                                     <tr>
-                                        <td><?php echo (int)$tab['id']; ?></td>
-                                        <td><?php echo htmlspecialchars($tab['icon']); ?></td>
-                                        <td>
-                                            <div class="d-flex gap-2">
-                                                <input type="text" name="name" form="<?php echo $editFormId; ?>" class="form-control" value="<?php echo htmlspecialchars($tab['name']); ?>" required>
-                                                <input type="text" name="icon" form="<?php echo $editFormId; ?>" class="form-control" value="<?php echo htmlspecialchars($tab['icon']); ?>" maxlength="8" style="max-width: 90px;">
-                                            </div>
-                                        </td>
-                                        <td><?php echo htmlspecialchars($tab['slug']); ?></td>
-                                        <td>
-                                            <input type="number" min="0" class="form-control" name="position" form="<?php echo $editFormId; ?>" value="<?php echo (int)$tab['position']; ?>" style="max-width: 110px;">
-                                        </td>
-                                        <td>
-                                            <form method="POST" id="<?php echo $editFormId; ?>" style="display:inline;">
-                                                <input type="hidden" name="id" value="<?php echo (int)$tab['id']; ?>">
-                                                <button type="submit" name="edit_tab" class="btn btn-sm btn-outline-warning">Save</button>
-                                            </form>
-                                            <?php if ($tab['slug'] !== 'alle'): ?>
-                                                <form method="POST" style="display:inline;">
-                                                    <input type="hidden" name="id" value="<?php echo (int)$tab['id']; ?>">
-                                                    <button type="submit" name="delete_tab" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this tab and its category assignments?');">Delete</button>
-                                                </form>
-                                            <?php else: ?>
-                                                <span class="text-muted">System</span>
-                                            <?php endif; ?>
-                                        </td>
+                                        <th>ID</th>
+                                        <th>Name</th>
+                                        <th>Slug</th>
+                                        <th>Position</th>
+                                        <th></th>
                                     </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($tabs as $tab): ?>
+                                        <tr>
+                                            <input type="hidden" name="tab_ids[]" value="<?php echo (int)$tab['id']; ?>">
+                                            <td><?php echo (int)$tab['id']; ?></td>
+                                            <td>
+                                                <input type="text" name="tab_names[<?php echo (int)$tab['id']; ?>]" class="form-control" value="<?php echo htmlspecialchars($tab['name']); ?>" required>
+                                            </td>
+                                            <td><?php echo htmlspecialchars($tab['slug']); ?></td>
+                                            <td>
+                                                <input type="number" min="0" name="tab_positions[<?php echo (int)$tab['id']; ?>]" class="form-control" value="<?php echo (int)$tab['position']; ?>" style="max-width: 110px;">
+                                            </td>
+                                            <td>
+                                                <?php if ($tab['slug'] !== 'alle'): ?>
+                                                    <button type="submit" form="delete-tab-<?php echo (int)$tab['id']; ?>" name="delete_tab" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this tab and its category assignments?');">Delete</button>
+                                                <?php else: ?>
+                                                    <span class="text-muted">System</span>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </form>
                 </div>
             </div>
         <?php else: ?>
