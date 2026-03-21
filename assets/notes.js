@@ -23,7 +23,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.querySelectorAll('.delete-note').forEach((btn) => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+
+            if (!confirm('Are you sure you want to delete this note? This cannot be undone.')) {
+                return;
+            }
+
             const tile = btn.closest('.note-tile');
             if (!tile) return;
             const id = tile.dataset.noteId;

@@ -359,7 +359,7 @@ if ($activeTabSlug === 'alle') {
     </script>
     <script src="assets/src/bootstrap.bundle.min.js"></script>
     <script src="assets/script.js?v1.4"></script>
-    <script src="assets/notes.js?v1.3"></script>
+    <script src="assets/notes.js?v1.4"></script>
     <?php if ($mode === 'edit'): ?>
         <script src="assets/sort.js?v1.5"></script>
     <?php endif; ?>
