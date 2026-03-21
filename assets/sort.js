@@ -9,7 +9,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     var tabSlug    = container.dataset.tabSlug || 'alle';
     var tabId      = container.dataset.tabId   || '';
-    var isFreeCanvas = window.innerWidth >= 992 && tabSlug !== 'alle';
+    var hasStoredPositions = hasStoredCanvasPositions(container);
+    var isFreeCanvas = window.innerWidth >= 992 && tabSlug !== 'alle' && hasStoredPositions;
 
     if (isFreeCanvas) {
         attachFreeDrag(container, tabId);
@@ -17,6 +18,21 @@ document.addEventListener('DOMContentLoaded', function() {
         initGridSort(container, tabSlug);
     }
 });
+
+function hasStoredCanvasPositions(container) {
+    var items = Array.from(container.querySelectorAll('.category, .note-tile'));
+    if (!items.length) return false;
+
+    return items.some(function(item) {
+        var x = item.dataset.posX;
+        var y = item.dataset.posY;
+        if (x === '' || y === '' || x === undefined || y === undefined) return false;
+
+        var px = parseInt(x, 10);
+        var py = parseInt(y, 10);
+        return !Number.isNaN(px) && !Number.isNaN(py);
+    });
+}
 
 // FREE CANVAS – drag handler only (layout handled by notes.js)
 function attachFreeDrag(container, tabId) {

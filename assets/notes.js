@@ -54,15 +54,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const tabSlug = container.dataset.tabSlug || 'alle';
     const tabId = container.dataset.tabId || '';
     const isEdit = document.body.classList.contains('edit-mode');
+    const hasStoredPositions = hasStoredCanvasPositions(container);
 
     if (tabSlug === 'alle') {
         sortTilesByHeaderTitle(container);
     }
 
-    if (window.innerWidth >= 992 && tabSlug !== 'alle') {
+    if (window.innerWidth >= 992 && tabSlug !== 'alle' && hasStoredPositions) {
         initFreeCanvasLayout(container, tabId, isEdit);
     }
 });
+
+function hasStoredCanvasPositions(container) {
+    const items = Array.from(container.querySelectorAll('.category, .note-tile'));
+    if (!items.length) return false;
+
+    return items.some((item) => {
+        const x = item.dataset.posX;
+        const y = item.dataset.posY;
+        if (x === '' || y === '' || x === undefined || y === undefined) return false;
+
+        const px = parseInt(x, 10);
+        const py = parseInt(y, 10);
+        return !Number.isNaN(px) && !Number.isNaN(py);
+    });
+}
 
 function sortTilesByHeaderTitle(container) {
     const tiles = Array.from(container.querySelectorAll(':scope > .category, :scope > .note-tile'));
