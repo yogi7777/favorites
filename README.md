@@ -22,6 +22,64 @@
 - **Browser**: JavaScript must be enabled
 - **Folder Permissions**: `favicons/` folder in the root directory must exist and be writable (chmod 755)
 
+## Docker (Recommended for Easy Setup)
+
+If you want the easiest installation path, use Docker Compose.
+This starts:
+
+- **Nginx** (web server)
+- **PHP-FPM 8.3** (app runtime with `pdo_mysql`)
+- **MariaDB 11.4** (database)
+
+### Quick Start
+
+1. Start stack with defaults:
+
+```bash
+docker compose up -d --build
+```
+
+2. Open setup wizard:
+
+```
+http://localhost:8080/setup.php
+```
+
+3. In the setup form, defaults are already prefilled for Docker:
+  - Host: `db`
+  - Database: `favorites`
+  - User: `favorites`
+  - Password: `favorites`
+
+4. Create your admin user, finish setup, then login.
+
+### Optional Configuration
+
+You usually do not need to edit `docker-compose.yml`.
+If you want custom ports/passwords, create a `.env` file from the template:
+
+```bash
+cp .env.docker.example .env
+```
+
+Then edit only values in `.env` (for example `APP_PORT`, `DB_PASS`, `MARIADB_ROOT_PASSWORD`).
+
+### Useful Commands
+
+```bash
+# start
+docker compose up -d
+
+# logs
+docker compose logs -f
+
+# stop
+docker compose down
+
+# stop + remove DB data volume (fresh reinstall)
+docker compose down -v
+```
+
 ## Admin Features
 
 - User management via the integrated admin panel.

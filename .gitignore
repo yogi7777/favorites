@@ -1,2 +1,5 @@
 favicon_converted/
 config_productive.php
+config.php
+.setup_complete
+.env

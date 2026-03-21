@@ -68,7 +68,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
             $info[] = "✓ Datenbank '{$db_name}' bereit.";
         } catch (PDOException $e) {
-            $errors[] = 'Datenbank anlegen fehlgeschlagen: ' . $e->getMessage();
+            // Fallback: Bei eingeschraenkten Rechten bestehende DB verwenden
+            try {
+                $pdoCheck = new PDO(
+                    "mysql:host={$db_host};dbname={$db_name};charset=utf8mb4",
+                    $db_user,
+                    $db_pass,
+                    [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_TIMEOUT => 5]
+                );
+                $info[] = "✓ Datenbank '{$db_name}' bereits vorhanden (Create uebersprungen).";
+            } catch (PDOException $inner) {
+                $errors[] = 'Datenbank anlegen fehlgeschlagen: ' . $e->getMessage();
+            }
         }
     }
 
@@ -234,21 +245,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="mb-2">
             <label class="form-label" for="db_host">Hostname <small>(z. B. localhost)</small></label>
             <input type="text" id="db_host" name="db_host" class="form-control"
-                   value="<?= htmlspecialchars($_POST['db_host'] ?? 'localhost') ?>" required>
+                   value="<?= htmlspecialchars($_POST['db_host'] ?? (getenv('DB_HOST') ?: 'localhost')) ?>" required>
         </div>
         <div class="mb-2">
             <label class="form-label" for="db_user">Datenbankbenutzer</label>
             <input type="text" id="db_user" name="db_user" class="form-control"
-                   value="<?= htmlspecialchars($_POST['db_user'] ?? '') ?>" autocomplete="username" required>
+                   value="<?= htmlspecialchars($_POST['db_user'] ?? (getenv('DB_USER') ?: '')) ?>" autocomplete="username" required>
         </div>
         <div class="mb-2">
             <label class="form-label" for="db_pass">Datenbankpasswort <small>(kann leer sein)</small></label>
-            <input type="password" id="db_pass" name="db_pass" class="form-control" autocomplete="current-password">
+            <input type="password" id="db_pass" name="db_pass" class="form-control"
+                   value="<?= htmlspecialchars($_POST['db_pass'] ?? (getenv('DB_PASS') ?: '')) ?>" autocomplete="current-password">
         </div>
         <div class="mb-2">
             <label class="form-label" for="db_name">Datenbankname <small>(wird angelegt falls nicht vorhanden)</small></label>
             <input type="text" id="db_name" name="db_name" class="form-control"
-                   value="<?= htmlspecialchars($_POST['db_name'] ?? 'favorites') ?>" required>
+                   value="<?= htmlspecialchars($_POST['db_name'] ?? (getenv('DB_NAME') ?: 'favorites')) ?>" required>
         </div>
 
         <hr class="divider">
