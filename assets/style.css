@@ -1,8 +1,37 @@
+@font-face {
+    font-family: 'AtkinsonHyperlegible';
+    src: url('fonts/AtkinsonHyperlegible-Regular.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'AtkinsonHyperlegible';
+    src: url('fonts/AtkinsonHyperlegible-Italic.ttf') format('truetype');
+    font-weight: 400;
+    font-style: italic;
+}
+
+@font-face {
+    font-family: 'AtkinsonHyperlegible';
+    src: url('fonts/AtkinsonHyperlegible-Bold.ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'AtkinsonHyperlegible';
+    src: url('fonts/AtkinsonHyperlegible-BoldItalic.ttf') format('truetype');
+    font-weight: 700;
+    font-style: italic;
+}
+
 :root {
     --ui-zoom: 1;
 }
 
 body {
+    font-family: 'AtkinsonHyperlegible', system-ui, sans-serif;
     font-size: calc(14px * var(--ui-zoom));
     padding-top: 0;
     padding-bottom: 124px;
