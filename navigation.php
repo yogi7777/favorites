@@ -7,6 +7,17 @@ $currentTab = $_GET['tab'] ?? 'alle';
 <nav class="bottom-nav navbar navbar-expand navbar-dark">
     <div class="container-fluid justify-content-center">
         <ul class="navbar-nav bottom-nav-list">
+            <li class="nav-item">
+                <a
+                    class="nav-link btn btn-secondary bottom-nav-btn bottom-nav-icon-btn"
+                    href="https://buymeacoffee.com/yogi7777"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="https://buymeacoffee.com/yogi7777"
+                    aria-label="Buy Me a Coffee"
+                >☕</a>
+            </li>
+
             <?php if ($page === 'index.php'): ?>
                 <?php if ($isAdmin): ?>
                     <li class="nav-item">
@@ -110,17 +121,6 @@ $currentTab = $_GET['tab'] ?? 'alle';
                     </a>
                 </li>
             <?php endif; ?>
-
-            <li class="nav-item">
-                <a
-                    class="nav-link btn btn-secondary bottom-nav-btn bottom-nav-icon-btn"
-                    href="https://buymeacoffee.com/yogi7777"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="https://buymeacoffee.com/yogi7777"
-                    aria-label="Buy Me a Coffee"
-                >☕</a>
-            </li>
 
             <li class="nav-item bottom-zoom-item">
                 <div class="bottom-zoom-control" title="UI Zoom (nur auf diesem Gerät)">

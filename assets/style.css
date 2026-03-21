@@ -152,6 +152,14 @@ body {
     padding-right: 0;
     font-size: 1.1rem;
     line-height: 1.2;
+    color: #f2d7a5 !important;
+    border-color: #92764d;
+}
+
+.bottom-nav-icon-btn:hover,
+.bottom-nav-icon-btn:focus {
+    color: #ffe8bf !important;
+    border-color: #b38d59;
 }
 
 .bottom-zoom-item {
