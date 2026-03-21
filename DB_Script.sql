@@ -1,6 +1,6 @@
--- ============================================================
--- Vollstaendiges Datenbankschema fuer Neuinstallationen.
--- Fuer Updates bestehender Installationen: migration.sql verwenden.
+-- Hinweis: Admin-Account wird beim Setup über setup.php angelegt.
+-- Manuelle Installation: am Ende dieser Datei den INSERT-Befehl
+-- ausführen und den Passwort-Hash mit password_hash() generieren.
 -- ============================================================
 
 CREATE DATABASE IF NOT EXISTS favorites
@@ -58,6 +58,8 @@ CREATE TABLE category_tab_positions (
     tab_id INT NOT NULL,
     category_id INT NOT NULL,
     position INT DEFAULT 0,
+    pos_x INT DEFAULT NULL,
+    pos_y INT DEFAULT NULL,
     PRIMARY KEY (tab_id, category_id),
     FOREIGN KEY (tab_id) REFERENCES tabs(id) ON DELETE CASCADE,
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
@@ -75,7 +77,38 @@ CREATE TABLE favorites (
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
 );
 
--- Beispiel-Admin-User (Passwort: "admin123" – nach der Installation aendern!)
--- Passwort-Hash neu generieren mit: password_hash('deinPasswort', PASSWORD_BCRYPT)
 INSERT INTO users (username, password_hash)
 VALUES ('admin', '$2y$10$u2IRsBqlyw/3xRBj1t3IQeJ2vf7MojRpIQKPHI/IEzVVgtgxq7m/W');
+
+    -- ============================================================
+    -- Notes-Feature
+    -- ============================================================
+
+    CREATE TABLE notes (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        title VARCHAR(100) NOT NULL DEFAULT 'Note',
+        content TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+    CREATE TABLE note_tabs (
+        note_id INT NOT NULL,
+        tab_id  INT NOT NULL,
+        position INT DEFAULT 0,
+        pos_x INT DEFAULT NULL,
+        pos_y INT DEFAULT NULL,
+        width  INT DEFAULT 360,
+        height INT DEFAULT 200,
+        PRIMARY KEY (note_id, tab_id),
+        FOREIGN KEY (note_id) REFERENCES notes(id) ON DELETE CASCADE,
+        FOREIGN KEY (tab_id)  REFERENCES tabs(id)  ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+    -- ============================================================
+    -- Manuelle Installation (ohne setup.php):
+    -- Passwort-Hash generieren: php -r "echo password_hash('deinPasswort', PASSWORD_BCRYPT);"
+    -- INSERT INTO users (username, password_hash) VALUES ('admin', 'HASH_HIER_EINTRAGEN');
+    -- ============================================================

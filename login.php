@@ -1,4 +1,10 @@
 <?php
+// Setup-Prüfung: Weiterleitung wenn Erst-Einrichtung noch aussteht
+if (!file_exists(__DIR__ . '/.setup_complete') || !file_exists(__DIR__ . '/config.php')) {
+    header('Location: setup.php');
+    exit;
+}
+
 require_once 'config.php';
 require_once 'auth.php';
 
