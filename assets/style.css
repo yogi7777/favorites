@@ -283,8 +283,8 @@ footer a:active {
 }
 
 /* ================================================================
-   FREE CANVAS – Desktop Edit-Modus (≥992px, kein "Alle"-Tab)
-   ================================================================ */
+    FREE CANVAS – desktop edit mode (>=992px, not "Alle" tab)
+    ================================================================ */
 
 #categories.free-canvas {
     position: relative;
@@ -328,7 +328,7 @@ body.edit-mode .free-canvas .note-tile:active {
     box-sizing: border-box;
 }
 
-/* Resize-Handle nur im Free Canvas / Edit-Modus */
+/* Resize handle only in free canvas / edit mode */
 .free-canvas .note-tile {
     overflow: hidden;
     min-width: 150px;
@@ -423,7 +423,7 @@ body.edit-mode .free-canvas .note-resize-handle {
     white-space: nowrap;
 }
 
-/* ---- Textarea (Edit-Modus) ---- */
+/* ---- Textarea (edit mode) ---- */
 .note-edit-area {
     width: 100%;
     flex-grow: 1;
@@ -446,7 +446,7 @@ body.edit-mode .free-canvas .note-resize-handle {
     background-color: #33393f;
 }
 
-/* ---- Markdown-View (View-Modus) ---- */
+/* ---- Markdown view (view mode) ---- */
 .note-view {
     font-size: 0.9rem;
     line-height: 1.6;

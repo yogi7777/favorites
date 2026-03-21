@@ -48,10 +48,32 @@ document.addEventListener('DOMContentLoaded', () => {
     const tabId = container.dataset.tabId || '';
     const isEdit = document.body.classList.contains('edit-mode');
 
+    if (tabSlug === 'alle') {
+        sortTilesByHeaderTitle(container);
+    }
+
     if (window.innerWidth >= 992 && tabSlug !== 'alle') {
         initFreeCanvasLayout(container, tabId, isEdit);
     }
 });
+
+function sortTilesByHeaderTitle(container) {
+    const tiles = Array.from(container.querySelectorAll(':scope > .category, :scope > .note-tile'));
+    if (!tiles.length) return;
+
+    tiles.sort((a, b) => {
+        const aTitle = getTileHeaderTitle(a);
+        const bTitle = getTileHeaderTitle(b);
+        return aTitle.localeCompare(bTitle, undefined, { sensitivity: 'base', numeric: true });
+    });
+
+    tiles.forEach((tile) => container.appendChild(tile));
+}
+
+function getTileHeaderTitle(tile) {
+    const titleEl = tile.querySelector('.card-header .card-title, .card-header .note-header-title');
+    return (titleEl ? titleEl.textContent : '').trim();
+}
 
 function initFreeCanvasLayout(container, tabId, isEdit) {
     if (isEdit) {
