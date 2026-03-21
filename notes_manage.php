@@ -270,7 +270,7 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
                                     <td>
                                         <form method="POST" style="display:inline;">
                                             <input type="hidden" name="id" value="<?php echo (int)$note['id']; ?>">
-                                            <button type="submit" name="delete_note" class="btn btn-sm btn-outline-danger">Delete</button>
+                                            <button type="submit" name="delete_note" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to delete this note? This cannot be undone.');">Delete</button>
                                         </form>
                                     </td>
                                 </tr>

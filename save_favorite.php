@@ -32,19 +32,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $favicon_url = "https://www.google.com/s2/favicons?domain=" . urlencode(parse_url($url, PHP_URL_HOST));
     }
 
-    // Favicon herunterladen
+    // Favorit immer zuerst speichern (mit Fallback-Favicon-URL)
+    $stmt = $pdo->prepare("INSERT INTO favorites (user_id, title, category_id, url, favicon_url) VALUES (?, ?, ?, ?, ?)");
+    $stmt->execute([$user_id, $title, $category_id, $url, $favicon_url]);
+    $favorite_id = $pdo->lastInsertId();
+
+    // Favicon-Verzeichnis sicherstellen
+    if (!file_exists('favicons')) {
+        mkdir('favicons', 0755, true);
+    }
+
+    // Favicon herunterladen und lokal speichern (optional)
     $ch = curl_init($favicon_url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 5);
     $favicon_data = curl_exec($ch);
     $content_type = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
     curl_close($ch);
 
-    if ($favicon_data) {
-        $stmt = $pdo->prepare("INSERT INTO favorites (user_id, title, category_id, url) VALUES (?, ?, ?, ?)");
-        $stmt->execute([$user_id, $title, $category_id, $url]);
-        $favorite_id = $pdo->lastInsertId();
-
+    if ($favicon_data && strlen($favicon_data) > 0) {
         // Dateiendung basierend auf Content-Type
         $ext = '.png'; // Standard
         if (str_contains($content_type, 'jpeg') || str_contains($content_type, 'jpg')) {
@@ -54,11 +61,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $favicon_path = "favicons/favicon_$favorite_id$ext";
-        file_put_contents($favicon_path, $favicon_data);
-
-        // Favicon-Pfad in DB speichern
-        $stmt = $pdo->prepare("UPDATE favorites SET favicon_url = ? WHERE id = ?");
-        $stmt->execute([$favicon_path, $favorite_id]);
+        if (file_put_contents($favicon_path, $favicon_data) !== false) {
+            // Lokalen Pfad in DB aktualisieren
+            $stmt = $pdo->prepare("UPDATE favorites SET favicon_url = ? WHERE id = ?");
+            $stmt->execute([$favicon_path, $favorite_id]);
+        }
     }
 }
 ?>
