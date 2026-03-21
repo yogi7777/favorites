@@ -1,6 +1,6 @@
 # Favorites Manager
 
-**Favorites Manager** Open-source bookmark manager with dark mode, categories and drag & drop – self-hosted.
+**Favorites Manager** Open-source bookmark manager with dark mode, categories, notes and drag & drop – self-hosted.
 
 ## Features
 
