@@ -145,6 +145,15 @@ body {
     text-align: center;
 }
 
+.bottom-nav-icon-btn {
+    min-width: 42px;
+    width: 42px;
+    padding-left: 0;
+    padding-right: 0;
+    font-size: 1.1rem;
+    line-height: 1.2;
+}
+
 .bottom-zoom-item {
     width: min(420px, 92vw);
 }

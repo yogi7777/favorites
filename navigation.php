@@ -111,6 +111,17 @@ $currentTab = $_GET['tab'] ?? 'alle';
                 </li>
             <?php endif; ?>
 
+            <li class="nav-item">
+                <a
+                    class="nav-link btn btn-secondary bottom-nav-btn bottom-nav-icon-btn"
+                    href="https://buymeacoffee.com/yogi7777"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="https://buymeacoffee.com/yogi7777"
+                    aria-label="Buy Me a Coffee"
+                >☕</a>
+            </li>
+
             <li class="nav-item bottom-zoom-item">
                 <div class="bottom-zoom-control" title="UI Zoom (nur auf diesem Gerät)">
                     <div class="bottom-zoom-label-row">
