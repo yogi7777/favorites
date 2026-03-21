@@ -140,7 +140,7 @@ body {
 .favorite {
     margin-top: 10px;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
 }
 
 .favorite img {
@@ -152,6 +152,11 @@ body {
 
 .favorite a {
     font-size: 1.0rem;
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    line-height: 1.35;
 }
 
 .nav-tabs {
