@@ -167,30 +167,6 @@ If you manage your containers with [Portainer](https://www.portainer.io/), you c
 
 ---
 
-### Useful Commands
-
-```bash
-# Start stack (+ rebuild app image if code changed)
-docker compose up -d --build
-
-# View live logs of all containers
-docker compose logs -f
-
-# View logs of a specific container
-docker compose logs -f app
-
-# Stop stack (data volume is kept)
-docker compose down
-
-# Stop stack AND delete the database volume (fresh reinstall)
-docker compose down -v
-
-# Open a shell inside the PHP container
-docker exec -it favorites-app sh
-
-# Restart only the web container (e.g. after nginx config change)
-docker compose restart web
-```
 
 ### Upgrading
 
