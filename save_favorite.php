@@ -12,7 +12,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Standard-Favicon von Google, falls nichts angegeben
     if (!$favicon_url) {
-        $favicon_url = "https://www.google.com/s2/favicons?domain=" . parse_url($url, PHP_URL_HOST);
+        $favicon_url = "https://www.google.com/s2/favicons?domain=" . urlencode(parse_url($url, PHP_URL_HOST));
+    }
+
+    // SSRF-Schutz: nur http/https erlauben, keine internen Adressen
+    $parsed = parse_url($favicon_url);
+    $scheme = strtolower($parsed['scheme'] ?? '');
+    $host   = strtolower($parsed['host'] ?? '');
+    $isPrivate = (
+        $host === 'localhost' ||
+        preg_match('/^127\./', $host) ||
+        preg_match('/^10\./', $host) ||
+        preg_match('/^192\.168\./', $host) ||
+        preg_match('/^172\.(1[6-9]|2[0-9]|3[01])\./', $host) ||
+        preg_match('/^169\.254\./', $host) ||
+        $host === '::1'
+    );
+    if (!in_array($scheme, ['http', 'https'], true) || $isPrivate) {
+        $favicon_url = "https://www.google.com/s2/favicons?domain=" . urlencode(parse_url($url, PHP_URL_HOST));
     }
 
     // Favicon herunterladen

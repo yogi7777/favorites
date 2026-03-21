@@ -49,7 +49,23 @@ function exportFavoritesData($user_id, $pdo) {
     );
     $stmt->execute([$user_id, $user_id]);
     $categoryTabPositions = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
+    // Notes abrufen
+    $stmt = $pdo->prepare("SELECT id, user_id, title, content, created_at FROM notes WHERE user_id = ?");
+    $stmt->execute([$user_id]);
+    $notes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Note-Tab-Mapping abrufen
+    $stmt = $pdo->prepare(
+        "SELECT nt.note_id, nt.tab_id, nt.position, nt.pos_x, nt.pos_y, nt.width, nt.height
+         FROM note_tabs nt
+         JOIN notes n ON n.id = nt.note_id
+         JOIN tabs t ON t.id = nt.tab_id
+         WHERE n.user_id = ? AND t.user_id = ?"
+    );
+    $stmt->execute([$user_id, $user_id]);
+    $noteTabs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
     // Daten in einem Array zusammenfassen
     $data = [
         'categories' => $categories,
@@ -57,8 +73,10 @@ function exportFavoritesData($user_id, $pdo) {
         'tabs' => $tabs,
         'category_tabs' => $categoryTabs,
         'category_tab_positions' => $categoryTabPositions,
+        'notes' => $notes,
+        'note_tabs' => $noteTabs,
         'export_date' => date('Y-m-d H:i:s'),
-        'version' => '2.0'
+        'version' => '3.0'
     ];
     
     // In JSON umwandeln
@@ -465,6 +483,71 @@ function importFavoritesData($user_id, $jsonData, $pdo, $update_favicons = false
             }
         }
         
+        // Notes importieren (ab Version 3.0, optional für Backwards-Kompatibilität)
+        $importNotes = isset($data['notes']) && is_array($data['notes']) ? $data['notes'] : [];
+        $noteMap = [];
+
+        if (!empty($importNotes)) {
+            foreach ($importNotes as $note) {
+                $title = trim($note['title'] ?? 'Note');
+                if ($title === '') $title = 'Note';
+                $content = $note['content'] ?? null;
+                $createdAt = $note['created_at'] ?? date('Y-m-d H:i:s');
+
+                $stmt = $pdo->prepare("SELECT id FROM notes WHERE title = ? AND user_id = ?");
+                $stmt->execute([$title, $user_id]);
+                $existingNote = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                if ($existingNote) {
+                    $stmt = $pdo->prepare("UPDATE notes SET content = ? WHERE id = ? AND user_id = ?");
+                    $stmt->execute([$content, $existingNote['id'], $user_id]);
+                    $noteMap[$note['id']] = (int)$existingNote['id'];
+                } else {
+                    $stmt = $pdo->prepare("INSERT INTO notes (user_id, title, content, created_at) VALUES (?, ?, ?, ?)");
+                    $stmt->execute([$user_id, $title, $content, $createdAt]);
+                    $noteMap[$note['id']] = (int)$pdo->lastInsertId();
+                }
+            }
+        }
+
+        // Note-Tab-Mapping importieren
+        $importNoteTabs = isset($data['note_tabs']) && is_array($data['note_tabs']) ? $data['note_tabs'] : [];
+
+        if (!empty($importNoteTabs) && !empty($noteMap)) {
+            $insertNoteTabStmt = $pdo->prepare(
+                "INSERT INTO note_tabs (note_id, tab_id, position, pos_x, pos_y, width, height)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE position = VALUES(position), pos_x = VALUES(pos_x),
+                     pos_y = VALUES(pos_y), width = VALUES(width), height = VALUES(height)"
+            );
+
+            foreach ($importNoteTabs as $mapping) {
+                $mappedNoteId = $noteMap[$mapping['note_id']] ?? null;
+                $mappedTabId  = $tabMap[$mapping['tab_id']] ?? null;
+                if (!$mappedNoteId || !$mappedTabId) continue;
+
+                $insertNoteTabStmt->execute([
+                    $mappedNoteId,
+                    $mappedTabId,
+                    (int)($mapping['position'] ?? 0),
+                    isset($mapping['pos_x']) && $mapping['pos_x'] !== null ? (int)$mapping['pos_x'] : null,
+                    isset($mapping['pos_y']) && $mapping['pos_y'] !== null ? (int)$mapping['pos_y'] : null,
+                    (int)($mapping['width'] ?? 360),
+                    (int)($mapping['height'] ?? 200),
+                ]);
+            }
+        }
+
+        // Alle importierten Notes mindestens dem Default-Tab zuordnen
+        if (!empty($noteMap)) {
+            $insertDefaultNoteTab = $pdo->prepare(
+                "INSERT IGNORE INTO note_tabs (note_id, tab_id, position) VALUES (?, ?, 0)"
+            );
+            foreach ($noteMap as $mappedNoteId) {
+                $insertDefaultNoteTab->execute([$mappedNoteId, $defaultTabId]);
+            }
+        }
+
         // Transaktion abschließen
         $pdo->commit();
         
@@ -480,6 +563,7 @@ function importFavoritesData($user_id, $jsonData, $pdo, $update_favicons = false
                 'categories' => count($data['categories']),
                 'favorites' => count($data['favorites']),
                 'tabs' => count($importTabs),
+                'notes' => count($importNotes),
                 'updated_favicons' => $updated_favicons
             ]
         ];
