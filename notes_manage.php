@@ -162,7 +162,7 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
             <div class="tabs-and-search">
                 <ul class="nav nav-pills top-tab-list">
                     <li class="nav-item">
-                        <a class="nav-link top-tab-link <?php echo $activeTabSlug === 'alle' ? 'active' : ''; ?>" href="index.php?tab=alle" title="Alle">
+                        <a class="nav-link top-tab-link <?php echo $activeTabSlug === 'alle' ? 'active' : ''; ?>" href="index.php?mode=edit&tab=alle" title="Alle">
                             <span class="tab-icon d-sm-none">🏠</span>
                             <span class="tab-label d-none d-sm-inline">Alle</span>
                         </a>
@@ -170,7 +170,7 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
                     <?php foreach ($tabs as $tab): ?>
                         <?php if ($tab['slug'] === 'alle') continue; ?>
                         <li class="nav-item">
-                            <a class="nav-link top-tab-link <?php echo $activeTabSlug === $tab['slug'] ? 'active' : ''; ?>" href="index.php?tab=<?php echo urlencode($tab['slug']); ?>" title="<?php echo htmlspecialchars($tab['name']); ?>">
+                            <a class="nav-link top-tab-link <?php echo $activeTabSlug === $tab['slug'] ? 'active' : ''; ?>" href="index.php?mode=edit&tab=<?php echo urlencode($tab['slug']); ?>" title="<?php echo htmlspecialchars($tab['name']); ?>">
                                 <span class="tab-icon d-sm-none"><?php echo htmlspecialchars(extractFirstEmoji($tab['name'])); ?></span>
                                 <span class="tab-label d-none d-sm-inline"><?php echo htmlspecialchars($tab['name']); ?></span>
                             </a>
