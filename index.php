@@ -187,7 +187,10 @@ if ($activeTabSlug === 'alle') {
             </div>
         <?php endif; ?>
 
-        <div id="categories" <?php if ($mode === 'edit'): ?>data-sortable data-tab-slug="<?php echo htmlspecialchars($activeTabSlug); ?>" data-tab-id="<?php echo (int)$activeTabId; ?>"<?php endif; ?>>
+        <div id="categories"
+             data-tab-slug="<?php echo htmlspecialchars($activeTabSlug); ?>"
+             data-tab-id="<?php echo (int)$activeTabId; ?>"
+             <?php if ($mode === 'edit'): ?>data-sortable<?php endif; ?>>
             <?php foreach ($categories as $category): ?>
                 <div class="category" data-category-id="<?php echo (int)$category['id']; ?>"
                      data-pos-x="<?php echo $category['pos_x'] !== null ? (int)$category['pos_x'] : ''; ?>"

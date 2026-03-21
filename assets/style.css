@@ -297,15 +297,15 @@ footer a:active {
 .free-canvas .note-tile {
     position: absolute;
     margin-bottom: 0;
+}
+
+body.edit-mode .free-canvas .category,
+body.edit-mode .free-canvas .note-tile {
     cursor: grab;
 }
 
-.free-canvas .category {
-    width: 240px;
-}
-
-.free-canvas .category:active,
-.free-canvas .note-tile:active {
+body.edit-mode .free-canvas .category:active,
+body.edit-mode .free-canvas .note-tile:active {
     cursor: grabbing;
 }
 
@@ -328,12 +328,39 @@ footer a:active {
     box-sizing: border-box;
 }
 
-/* Resize-Handle nur im Free Canvas */
+/* Resize-Handle nur im Free Canvas / Edit-Modus */
 .free-canvas .note-tile {
-    overflow: auto;
-    resize: both;
+    overflow: hidden;
     min-width: 150px;
     min-height: 80px;
+}
+
+/* Kategorie-Kachel: Standardbreite im Free Canvas */
+.free-canvas .category {
+    width: 240px;
+}
+
+/* ---- Eigener Resize-Handle (JS fügt ihn an) ---- */
+.note-resize-handle {
+    display: none;
+}
+
+body.edit-mode .free-canvas .note-resize-handle {
+    display: block;
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 18px;
+    height: 18px;
+    cursor: se-resize;
+    z-index: 20;
+    /* Visueller Indikator: diagonale Linien */ 
+    background:
+        linear-gradient(135deg,
+            transparent 33%, rgba(95, 126, 161, 0.8) 33%, rgba(95, 126, 161, 0.8) 40%,
+            transparent 40%, transparent 57%, rgba(95, 126, 161, 0.8) 57%, rgba(95, 126, 161, 0.8) 64%,
+            transparent 64%);
+    border-radius: 0 0 4px 0;
 }
 
 .note-card {
@@ -363,9 +390,25 @@ footer a:active {
     flex-direction: column;
 }
 
-/* Im Free Canvas: Card-Body füllt die gesamte Kachelhöhe */
-.free-canvas .note-card .card-body {
+/* Im Free Canvas: Card-Body + Textarea füllen die gesamte Kachelhöhe */
+.free-canvas .note-tile .note-card .card-body {
     overflow: hidden;
+    min-height: 0;
+    padding-bottom: 20px; /* Platz für Resize-Handle */
+}
+
+.free-canvas .note-tile .note-edit-area {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.free-canvas .note-tile .note-view {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
 }
 
 /* ---- Note-Titel ---- */
@@ -418,12 +461,6 @@ footer a:active {
 .note-edit-area:focus {
     border-color: #5f7ea1;
     background-color: #33393f;
-}
-
-/* Im Free Canvas: Textarea füllt die ganze Card-Body-Höhe */
-.free-canvas .note-tile .note-edit-area {
-    min-height: unset;
-    height: 100%;
 }
 
 /* ---- Markdown-View (View-Modus) ---- */

@@ -1,169 +1,102 @@
 /**
- * sort.js – Dual-Mode-Drag:
- *   • Free-Canvas  (≥992px, Edit-Modus, kein "Alle"-Tab):
- *       Absolute Positionierung + Mouse-Drag für Kategorien & Note-Kacheln.
- *       Positionen werden per AJAX in notes.php gespeichert.
- *   • Grid-Sort    (Mobile / "Alle"-Tab):
- *       Drag-to-Swap wie bisher; Reihenfolge wird per AJAX gespeichert.
+ * sort.js (nur Edit-Modus) – Drag-Verhalten:
+ *   - Free-Canvas (>=992px, kein "Alle"-Tab): Mouse-Drag; Layout macht notes.js.
+ *   - Grid-Sort (Mobile / "Alle"-Tab): Drag-to-Swap, Reihenfolge per AJAX.
  */
-document.addEventListener('DOMContentLoaded', () => {
-    const container = document.querySelector('[data-sortable]');
+document.addEventListener('DOMContentLoaded', function() {
+    var container = document.querySelector('[data-sortable]');
     if (!container) return;
 
-    const tabSlug = container.dataset.tabSlug || 'alle';
-    const tabId   = container.dataset.tabId   || '';
-
-    // Free-Canvas nur auf Desktop (≥992px) und nicht auf dem "Alle"-Tab
-    const isFreeCanvas = window.innerWidth >= 992 && tabSlug !== 'alle';
+    var tabSlug    = container.dataset.tabSlug || 'alle';
+    var tabId      = container.dataset.tabId   || '';
+    var isFreeCanvas = window.innerWidth >= 992 && tabSlug !== 'alle';
 
     if (isFreeCanvas) {
-        initFreeCanvas(container, tabId);
+        attachFreeDrag(container, tabId);
     } else {
         initGridSort(container, tabSlug);
     }
 });
 
-/* ================================================================
-   FREE CANVAS MODE
-   ================================================================ */
+// FREE CANVAS – nur Drag-Handler (Layout macht notes.js)
+function attachFreeDrag(container, tabId) {
+    var dragged = null;
+    var offsetX = 0;
+    var offsetY = 0;
 
-function initFreeCanvas(container, tabId) {
-    // HTML5-Draggable deaktivieren (interferiert mit Mouse-Events)
-    container.querySelectorAll('[draggable]').forEach(el => el.removeAttribute('draggable'));
+    container.addEventListener('mousedown', function(e) {
+        if (['TEXTAREA', 'INPUT', 'BUTTON', 'A', 'SELECT'].indexOf(e.target.tagName) !== -1) return;
+        if (e.target.classList.contains('note-resize-handle')) return;
 
-    container.classList.add('free-canvas');
-
-    const items = [...container.querySelectorAll('.category, .note-tile')];
-
-    // 1. Note-Kacheln: gespeicherte Größe anwenden
-    items.forEach(item => {
-        if (item.classList.contains('note-tile')) {
-            item.style.width  = (parseInt(item.dataset.width)  || 360) + 'px';
-            item.style.height = (parseInt(item.dataset.height) || 200) + 'px';
-        }
-    });
-
-    // 2. Positionen setzen (gespeichert oder Auto-Layout)
-    //    offsetHeight lesen erzwingt Reflow → Höhen bekannt
-    const GAP = 15;
-    let autoX = GAP, autoY = GAP, curRowH = 0;
-
-    items.forEach(item => {
-        const posX = item.dataset.posX !== '' ? parseInt(item.dataset.posX) : NaN;
-        const posY = item.dataset.posY !== '' ? parseInt(item.dataset.posY) : NaN;
-
-        if (!isNaN(posX) && !isNaN(posY)) {
-            item.style.left = posX + 'px';
-            item.style.top  = posY + 'px';
-        } else {
-            // Auto-Layout: Zeilen-basiertes Fließen
-            const itemW  = item.offsetWidth  || (item.classList.contains('note-tile') ? 360 : 240);
-            const availW = container.offsetWidth - GAP * 2;
-            if (autoX + itemW > availW + GAP && autoX > GAP) {
-                autoX   = GAP;
-                autoY  += curRowH + GAP;
-                curRowH = 0;
-            }
-            item.style.left = autoX + 'px';
-            item.style.top  = autoY + 'px';
-            const itemH = item.offsetHeight || (item.classList.contains('note-tile') ? 200 : 260);
-            curRowH = Math.max(curRowH, itemH);
-            autoX  += itemW + GAP;
-        }
-    });
-
-    updateCanvasHeight(container);
-
-    // 3. Mouse-Drag
-    let dragged = null;
-    let offsetX = 0;
-    let offsetY = 0;
-
-    container.addEventListener('mousedown', e => {
-        // Interaktive Elemente im Inneren nicht blockieren
-        if (['TEXTAREA', 'INPUT', 'BUTTON', 'A', 'SELECT'].includes(e.target.tagName)) return;
-
-        const tile = e.target.closest('.category, .note-tile');
+        var tile = e.target.closest('.category, .note-tile');
         if (!tile) return;
 
         dragged = tile;
-        const rect          = tile.getBoundingClientRect();
-        const containerRect = container.getBoundingClientRect();
+        var rect          = tile.getBoundingClientRect();
+        var containerRect = container.getBoundingClientRect();
         offsetX = e.clientX - rect.left;
         offsetY = e.clientY - rect.top;
 
         dragged.classList.add('dragging');
-        dragged.style.zIndex = 1000;
+        dragged.style.zIndex = '1000';
         e.preventDefault();
     });
 
-    document.addEventListener('mousemove', e => {
+    document.addEventListener('mousemove', function(e) {
         if (!dragged) return;
-        const containerRect = container.getBoundingClientRect();
-        const x = Math.max(0, e.clientX - containerRect.left - offsetX);
-        const y = Math.max(0, e.clientY - containerRect.top  - offsetY);
-        dragged.style.left = x + 'px';
-        dragged.style.top  = y + 'px';
+        var cr = container.getBoundingClientRect();
+        dragged.style.left = Math.max(0, e.clientX - cr.left  - offsetX) + 'px';
+        dragged.style.top  = Math.max(0, e.clientY - cr.top   - offsetY) + 'px';
     });
 
-    document.addEventListener('mouseup', () => {
+    document.addEventListener('mouseup', function() {
         if (!dragged) return;
-
         dragged.classList.remove('dragging');
         dragged.style.zIndex = '';
 
-        const x = Math.max(0, parseInt(dragged.style.left) || 0);
-        const y = Math.max(0, parseInt(dragged.style.top)  || 0);
+        var x = Math.max(0, parseInt(dragged.style.left) || 0);
+        var y = Math.max(0, parseInt(dragged.style.top)  || 0);
 
         if (dragged.classList.contains('note-tile')) {
-            const noteId = dragged.dataset.noteId;
-            const tid    = dragged.dataset.tabId || tabId;
+            var noteId = dragged.dataset.noteId;
+            var tid    = dragged.dataset.tabId || tabId;
             fetch('notes.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `action=update_position&id=${encodeURIComponent(noteId)}&tab_id=${encodeURIComponent(tid)}&pos_x=${x}&pos_y=${y}`
-            }).catch(err => console.error('Fehler beim Speichern der Note-Position:', err));
+                body: 'action=update_position&id=' + encodeURIComponent(noteId) +
+                      '&tab_id=' + encodeURIComponent(tid) +
+                      '&pos_x=' + x + '&pos_y=' + y
+            }).catch(function(err) { console.error('Note-Position Fehler:', err); });
         } else {
-            const catId = dragged.dataset.categoryId;
+            var catId = dragged.dataset.categoryId;
             fetch('notes.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `action=update_cat_position&cat_id=${encodeURIComponent(catId)}&tab_id=${encodeURIComponent(tabId)}&pos_x=${x}&pos_y=${y}`
-            }).catch(err => console.error('Fehler beim Speichern der Kategorie-Position:', err));
+                body: 'action=update_cat_position&cat_id=' + encodeURIComponent(catId) +
+                      '&tab_id=' + encodeURIComponent(tabId) +
+                      '&pos_x=' + x + '&pos_y=' + y
+            }).catch(function(err) { console.error('Kategorie-Position Fehler:', err); });
         }
 
         dragged = null;
-        updateCanvasHeight(container);
+        if (window.updateCanvasHeight) window.updateCanvasHeight(container);
     });
 }
 
-function updateCanvasHeight(container) {
-    let maxBottom = 600;
-    container.querySelectorAll('.category, .note-tile').forEach(item => {
-        const bottom = (parseInt(item.style.top) || 0) + item.offsetHeight + 80;
-        maxBottom = Math.max(maxBottom, bottom);
-    });
-    container.style.minHeight = maxBottom + 'px';
-}
-
-/* ================================================================
-   GRID SORT MODE (Mobile / "Alle"-Tab)
-   ================================================================ */
-
+// GRID SORT MODE – Mobile / "Alle"-Tab
 function initGridSort(container, tabSlug) {
-    let draggedItem = null;
+    var draggedItem = null;
 
-    container.addEventListener('dragstart', e => {
+    container.addEventListener('dragstart', function(e) {
         draggedItem = e.target.closest('.category');
         if (draggedItem) {
             draggedItem.classList.add('dragging');
             e.dataTransfer.effectAllowed = 'move';
-            // Wichtig für Firefox
-            e.dataTransfer.setData('text/plain', '');
+            e.dataTransfer.setData('text/plain', ''); // Firefox
         }
     });
 
-    container.addEventListener('dragend', () => {
+    container.addEventListener('dragend', function() {
         if (draggedItem) {
             draggedItem.classList.remove('dragging');
             draggedItem = null;
@@ -171,30 +104,28 @@ function initGridSort(container, tabSlug) {
         }
     });
 
-    container.addEventListener('dragover', e => {
+    container.addEventListener('dragover', function(e) {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
-        const target = e.target.closest('.category');
+        var target = e.target.closest('.category');
         if (target && draggedItem && target !== draggedItem) {
             target.classList.add('dragover');
         }
     });
 
-    container.addEventListener('dragleave', e => {
-        const target = e.target.closest('.category');
+    container.addEventListener('dragleave', function(e) {
+        var target = e.target.closest('.category');
         if (target) target.classList.remove('dragover');
     });
 
-    container.addEventListener('drop', e => {
+    container.addEventListener('drop', function(e) {
         e.preventDefault();
-        document.querySelectorAll('.category.dragover').forEach(c => c.classList.remove('dragover'));
-
-        const target = e.target.closest('.category');
+        document.querySelectorAll('.category.dragover').forEach(function(c) { c.classList.remove('dragover'); });
+        var target = e.target.closest('.category');
         if (target && draggedItem && target !== draggedItem) {
-            const all      = [...container.querySelectorAll('.category')];
-            const dragIdx  = all.indexOf(draggedItem);
-            const targetIdx = all.indexOf(target);
-
+            var all      = Array.from(container.querySelectorAll('.category'));
+            var dragIdx  = all.indexOf(draggedItem);
+            var targetIdx = all.indexOf(target);
             if (dragIdx < targetIdx) {
                 target.after(draggedItem);
             } else {
@@ -206,15 +137,12 @@ function initGridSort(container, tabSlug) {
 }
 
 function saveCategoryOrder(container, tabSlug) {
-    const order = [...container.querySelectorAll('.category')].map((cat, idx) => ({
-        id:       cat.dataset.categoryId,
-        position: idx,
-        tab:      tabSlug
-    }));
-
+    var order = Array.from(container.querySelectorAll('.category')).map(function(cat, idx) {
+        return { id: cat.dataset.categoryId, position: idx, tab: tabSlug };
+    });
     fetch('update_positions.php', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify(order)
-    }).catch(err => console.error('Fehler beim Speichern der Reihenfolge:', err));
+    }).catch(function(err) { console.error('Reihenfolge-Fehler:', err); });
 }
