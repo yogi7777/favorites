@@ -144,8 +144,6 @@ git pull
 docker compose up -d --build
 ```
 
-The database volume is preserved across upgrades. If a migration is needed, follow the instructions in `migration_notes.sql`.
-
 ## Notes
 
 Each tab has its own board of **sticky-note tiles**:
