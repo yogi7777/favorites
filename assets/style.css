@@ -36,8 +36,8 @@ body {
 }
 
 .top-tab-link.active {
-    background-color: #5f7ea1 !important;
-    border-color: #5f7ea1;
+    background-color: #1e509a !important;
+    border-color: #1e509a;
     color: #ffffff !important;
 }
 
@@ -217,6 +217,10 @@ footer a:active {
 @media (max-width: 767px) {
     body {
         padding-bottom: 78px;
+    }
+
+    .top-bar {
+        padding-top: 0;
     }
 
     .tabs-and-search {

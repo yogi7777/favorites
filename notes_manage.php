@@ -174,7 +174,7 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
     <meta name="author" content="yogi7777">
     <title>Favorites - Notes</title>
     <link href="assets/src/bootstrap.min.css" rel="stylesheet">
-    <link href="assets/style.css?v1.1" rel="stylesheet">
+    <link href="assets/style.css?v1.2" rel="stylesheet">
 </head>
 <body data-bs-theme="dark">
     <div class="container-fluid p-0 m-0">
