@@ -575,11 +575,13 @@ body.edit-mode .free-canvas .note-resize-handle {
     border-radius: 4px;
     overflow-x: auto;
     margin: 0.4em 0;
+    font-family: inherit;
 }
 
 .note-view pre code {
     background: none;
     padding: 0;
+    font-family: inherit;
 }
 
 .note-view ul,
