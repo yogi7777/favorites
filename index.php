@@ -183,6 +183,9 @@ if ($activeTabSlug === 'alle') {
                         <a class="nav-link <?php echo $activeTabSlug === 'alle' ? 'active' : ''; ?>" href="categories.php?tab=<?php echo urlencode($activeTabSlug); ?>">Categories</a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" href="notes_manage.php?tab=<?php echo urlencode($activeTabSlug); ?>">Notes</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="tabs.php?tab=<?php echo urlencode($activeTabSlug); ?>">Tabs</a>
                     </li>
                 </ul>

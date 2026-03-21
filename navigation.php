@@ -2,6 +2,7 @@
 $isAdmin = ($_SESSION['user_id'] == 1);
 $mode = $_GET['mode'] ?? 'view';
 $page = basename($_SERVER['PHP_SELF']);
+$currentTab = $_GET['tab'] ?? 'alle';
 ?>
 <nav class="bottom-nav navbar navbar-expand navbar-dark">
     <div class="container-fluid justify-content-center">
@@ -17,9 +18,9 @@ $page = basename($_SERVER['PHP_SELF']);
                 <?php endif; ?>
 
                 <li class="nav-item">
-                    <a class="nav-link btn btn-secondary bottom-nav-btn" href="index.php?mode=<?php echo $mode === 'view' ? 'edit' : 'view'; ?>&tab=<?php echo urlencode($_GET['tab'] ?? 'alle'); ?>">
-                        <span class="d-none d-sm-inline"><?php echo $mode === 'view' ? 'Edit' : 'Back'; ?></span>
-                        <span class="d-sm-none"><?php echo $mode === 'view' ? '✏️' : '↩️'; ?></span>
+                    <a class="nav-link btn btn-secondary bottom-nav-btn" href="<?php echo ($mode === 'view' && $currentTab === 'alle') ? ('categories.php?tab=' . urlencode($currentTab)) : ('index.php?mode=' . ($mode === 'view' ? 'edit' : 'view') . '&tab=' . urlencode($currentTab)); ?>">
+                        <span class="d-none d-sm-inline"><?php echo ($mode === 'view' && $currentTab === 'alle') ? 'Manage' : ($mode === 'view' ? 'Edit' : 'Back'); ?></span>
+                        <span class="d-sm-none"><?php echo ($mode === 'view' && $currentTab === 'alle') ? '🧩' : ($mode === 'view' ? '✏️' : '↩️'); ?></span>
                     </a>
                 </li>
 
@@ -64,7 +65,7 @@ $page = basename($_SERVER['PHP_SELF']);
                         <span class="d-sm-none">🚪</span>
                     </a>
                 </li>
-            <?php elseif ($page === 'categories.php' || $page === 'tabs.php'): ?>
+            <?php elseif ($page === 'categories.php' || $page === 'notes_manage.php' || $page === 'tabs.php'): ?>
                 <li class="nav-item">
                     <a class="nav-link btn btn-secondary bottom-nav-btn" href="index.php?tab=<?php echo urlencode($_GET['tab'] ?? 'alle'); ?>">
                         <span class="d-none d-sm-inline">Back</span>

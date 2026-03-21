@@ -135,6 +135,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <a class="nav-link" href="categories.php?tab=<?php echo urlencode($activeTabSlug); ?>">Categories</a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link" href="notes_manage.php?tab=<?php echo urlencode($activeTabSlug); ?>">Notes</a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link active" href="tabs.php?tab=<?php echo urlencode($activeTabSlug); ?>">Tabs</a>
                 </li>
             </ul>
