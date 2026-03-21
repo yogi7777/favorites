@@ -284,19 +284,17 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
         </div>
     </div>
 
-    <form method="POST" id="delete-note-form" style="display:none;">
-        <input type="hidden" name="id" id="delete-note-id" value="">
-        <input type="hidden" name="delete_note" value="1">
-    </form>
-
     <?php include 'navigation.php'; ?>
     <script src="assets/src/bootstrap.bundle.min.js"></script>
     <script src="assets/script.js?v1.4"></script>
     <script>
-        function confirmDeleteNote(id) {
+        function confirmDeleteNote(noteId) {
             if (!confirm('Are you sure you want to delete this note? This cannot be undone.')) return;
-            document.getElementById('delete-note-id').value = id;
-            document.getElementById('delete-note-form').submit();
+            fetch('notes_manage.php?tab=<?php echo urlencode($activeTabSlug); ?>', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'id=' + encodeURIComponent(noteId) + '&delete_note=1'
+            }).then(function() { location.reload(); });
         }
     </script>
 </body>
