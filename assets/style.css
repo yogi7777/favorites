@@ -524,7 +524,7 @@ body.edit-mode .free-canvas .note-resize-handle {
     border: 1px solid #495564;
     border-radius: 4px;
     padding: 8px;
-    font-size: 0.9rem;
+    font-size: calc(1rem * var(--ui-zoom));
     line-height: 1.55;
     resize: none;            /* resize wird über das tile-element gesteuert */
     outline: none;
@@ -540,7 +540,7 @@ body.edit-mode .free-canvas .note-resize-handle {
 
 /* ---- Markdown view (view mode) ---- */
 .note-view {
-    font-size: 0.9rem;
+    font-size: calc(1rem * var(--ui-zoom));
     line-height: 1.6;
     color: #dce3ec;
     word-wrap: break-word;
@@ -551,13 +551,13 @@ body.edit-mode .free-canvas .note-resize-handle {
 .note-view h1,
 .note-view h2,
 .note-view h3 {
-    font-size: 1rem;
+    font-size: calc(1.1rem * var(--ui-zoom));
     font-weight: 700;
     margin: 0.5em 0 0.2em;
     color: #e8ecf2;
 }
-.note-view h2 { font-size: 0.95rem; }
-.note-view h3 { font-size: 0.9rem; }
+.note-view h2 { font-size: calc(1rem * var(--ui-zoom)); }
+.note-view h3 { font-size: calc(0.95rem * var(--ui-zoom)); }
 
 .note-view p  { margin: 0.25em 0; }
 
