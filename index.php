@@ -339,7 +339,7 @@ if ($activeTabSlug === 'alle') {
     <script>window.favSearchData = <?= json_encode($searchData, JSON_HEX_TAG | JSON_HEX_AMP) ?>;</script>
     <script src="assets/src/bootstrap.bundle.min.js"></script>
     <script src="assets/script.js?v1.3"></script>
-    <script src="assets/notes.js?v1.2"></script>
+    <script src="assets/notes.js?v1.3"></script>
     <?php if ($mode === 'edit'): ?>
         <script src="assets/sort.js?v1.5"></script>
     <?php endif; ?>

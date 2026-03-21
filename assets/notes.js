@@ -64,6 +64,13 @@ function sortTilesByHeaderTitle(container) {
     tiles.sort((a, b) => {
         const aTitle = getTileHeaderTitle(a);
         const bTitle = getTileHeaderTitle(b);
+        const aKey = normalizeSortKey(aTitle);
+        const bKey = normalizeSortKey(bTitle);
+
+        const keyCmp = aKey.localeCompare(bKey, undefined, { sensitivity: 'base', numeric: true });
+        if (keyCmp !== 0) return keyCmp;
+
+        // Stable tie-breaker with original title text.
         return aTitle.localeCompare(bTitle, undefined, { sensitivity: 'base', numeric: true });
     });
 
@@ -73,6 +80,20 @@ function sortTilesByHeaderTitle(container) {
 function getTileHeaderTitle(tile) {
     const titleEl = tile.querySelector('.card-header .card-title, .card-header .note-header-title');
     return (titleEl ? titleEl.textContent : '').trim();
+}
+
+function normalizeSortKey(title) {
+    if (!title) return '';
+
+    let key = title.normalize('NFKD').trim().toLowerCase();
+
+    // Ignore leading emojis/symbols/punctuation for alphabetic sorting.
+    key = key.replace(/^[^\p{L}\p{N}]+/u, '');
+
+    // Normalize internal whitespace.
+    key = key.replace(/\s+/g, ' ').trim();
+
+    return key || title.toLowerCase();
 }
 
 function initFreeCanvasLayout(container, tabId, isEdit) {
