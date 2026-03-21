@@ -80,6 +80,18 @@ foreach ($allCategories as $cat) {
     ];
 }
 
+// All notes for cross-tab search
+$searchNotes = [];
+$stmt = $pdo->prepare('SELECT id, title, content FROM notes WHERE user_id = ? ORDER BY title ASC');
+$stmt->execute([$userId]);
+foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $noteRow) {
+    $searchNotes[] = [
+        'id' => (int)$noteRow['id'],
+        'title' => $noteRow['title'] ?? '',
+        'content' => $noteRow['content'] ?? '',
+    ];
+}
+
 // Load notes for current tab
 $notes = [];
 if ($activeTabSlug === 'alle') {
@@ -180,13 +192,13 @@ if ($activeTabSlug === 'alle') {
                         </li>
                     <?php endif; ?>
                     <li class="nav-item">
-                        <a class="nav-link <?php echo $activeTabSlug === 'alle' ? 'active' : ''; ?>" href="categories.php?tab=<?php echo urlencode($activeTabSlug); ?>">Categories</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="notes_manage.php?tab=<?php echo urlencode($activeTabSlug); ?>">Notes</a>
+                        <a class="nav-link <?php echo $activeTabSlug === 'alle' ? 'active' : ''; ?>" href="categories.php?tab=<?php echo urlencode($activeTabSlug); ?>">Favorite Categories</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="tabs.php?tab=<?php echo urlencode($activeTabSlug); ?>">Tabs</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="notes_manage.php?tab=<?php echo urlencode($activeTabSlug); ?>">Notes</a>
                     </li>
                 </ul>
             </div>
@@ -341,9 +353,12 @@ if ($activeTabSlug === 'alle') {
 
     <?php include 'navigation.php'; ?>
 
-    <script>window.favSearchData = <?= json_encode($searchData, JSON_HEX_TAG | JSON_HEX_AMP) ?>;</script>
+    <script>
+        window.favSearchData = <?= json_encode($searchData, JSON_HEX_TAG | JSON_HEX_AMP) ?>;
+        window.noteSearchData = <?= json_encode($searchNotes, JSON_HEX_TAG | JSON_HEX_AMP) ?>;
+    </script>
     <script src="assets/src/bootstrap.bundle.min.js"></script>
-    <script src="assets/script.js?v1.3"></script>
+    <script src="assets/script.js?v1.4"></script>
     <script src="assets/notes.js?v1.3"></script>
     <?php if ($mode === 'edit'): ?>
         <script src="assets/sort.js?v1.5"></script>

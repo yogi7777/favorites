@@ -19,8 +19,8 @@ $currentTab = $_GET['tab'] ?? 'alle';
 
                 <li class="nav-item">
                     <a class="nav-link btn btn-secondary bottom-nav-btn" href="<?php echo ($mode === 'view' && $currentTab === 'alle') ? ('categories.php?tab=' . urlencode($currentTab)) : ('index.php?mode=' . ($mode === 'view' ? 'edit' : 'view') . '&tab=' . urlencode($currentTab)); ?>">
-                        <span class="d-none d-sm-inline"><?php echo ($mode === 'view' && $currentTab === 'alle') ? 'Manage' : ($mode === 'view' ? 'Edit' : 'Back'); ?></span>
-                        <span class="d-sm-none"><?php echo ($mode === 'view' && $currentTab === 'alle') ? '🧩' : ($mode === 'view' ? '✏️' : '↩️'); ?></span>
+                        <span class="d-none d-sm-inline"><?php echo $mode === 'view' ? 'Edit' : 'Back'; ?></span>
+                        <span class="d-sm-none"><?php echo $mode === 'view' ? '✏️' : '↩️'; ?></span>
                     </a>
                 </li>
 

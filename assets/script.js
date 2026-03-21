@@ -350,7 +350,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // Tab-übergreifende Suche: favSearchData aus PHP (alle Favoriten, alle Tabs)
+            // Cross-tab search: favorites + notes data from PHP
             if (window.favSearchData && searchResults && categoriesContainer) {
                 const html = [];
                 window.favSearchData.forEach(cat => {
@@ -375,10 +375,35 @@ document.addEventListener('DOMContentLoaded', () => {
                     html.push('</div></div></div>');
                 });
 
+                const noteHits = (window.noteSearchData || []).filter(note => {
+                    const title = (note.title || '').toLowerCase();
+                    const content = (note.content || '').toLowerCase();
+                    return title.includes(query) || content.includes(query);
+                });
+
+                noteHits.forEach(note => {
+                    const safeTitle = escapeHtml(note.title || 'Untitled note');
+                    const rawContent = String(note.content || '');
+                    const plainContent = rawContent
+                        .replace(/```[\s\S]*?```/g, ' ')
+                        .replace(/`([^`\n]+)`/g, '$1')
+                        .replace(/[#*_>\-\[\]()]/g, ' ')
+                        .replace(/\s+/g, ' ')
+                        .trim();
+                    const snippet = plainContent.length > 180 ? plainContent.slice(0, 180) + '...' : plainContent;
+
+                    html.push('<div class="note-tile search-result-card">');
+                    html.push('<div class="card note-card">');
+                    html.push('<div class="card-header"><h5 class="note-header-title">' + safeTitle + '</h5></div>');
+                    html.push('<div class="card-body">');
+                    html.push('<div class="note-view">' + (snippet ? escapeHtml(snippet) : '<span class="text-muted">No content</span>') + '</div>');
+                    html.push('</div></div></div>');
+                });
+
                 if (html.length > 0) {
                     searchResults.innerHTML = html.join('');
                 } else {
-                    searchResults.innerHTML = '<p class="text-muted mt-3">Keine Ergebnisse für „' + escapeHtml(query) + '"</p>';
+                    searchResults.innerHTML = '<p class="text-muted mt-3">No results for "' + escapeHtml(query) + '"</p>';
                 }
                 searchResults.classList.remove('d-none');
                 categoriesContainer.classList.add('d-none');

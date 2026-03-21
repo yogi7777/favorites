@@ -225,13 +225,13 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
                     <a class="nav-link" href="index.php?mode=edit&tab=<?php echo urlencode($activeTabSlug); ?>">Edit</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link active" href="categories.php?tab=<?php echo urlencode($activeTabSlug); ?>">Categories</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="notes_manage.php?tab=<?php echo urlencode($activeTabSlug); ?>">Notes</a>
+                    <a class="nav-link active" href="categories.php?tab=<?php echo urlencode($activeTabSlug); ?>">Favorite Categories</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="tabs.php?tab=<?php echo urlencode($activeTabSlug); ?>">Tabs</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="notes_manage.php?tab=<?php echo urlencode($activeTabSlug); ?>">Notes</a>
                 </li>
             </ul>
         </div>
@@ -317,6 +317,6 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
 
     <?php include 'navigation.php'; ?>
     <script src="assets/src/bootstrap.bundle.min.js"></script>
-    <script src="assets/script.js?v1.3"></script>
+    <script src="assets/script.js?v1.4"></script>
 </body>
 </html>
