@@ -23,6 +23,61 @@
 - **Browser**: JavaScript must be enabled
 - **Folder Permissions**: `favicons/` folder in the root directory must exist and be writable (chmod 755)
 
+## Manual Installation (Webhost / LXC / VM)
+
+Use this method if you already have a LAMP/LEMP stack running — e.g. a shared webhost, a Proxmox LXC container, or any VM with Apache/Nginx + PHP + MySQL.
+
+**1. Copy the files to your webroot**
+
+Either upload the files via FTP/SFTP, or clone the repository directly on the server:
+
+```bash
+git clone https://github.com/yogi7777/favorites.git /var/www/html/favorites
+```
+
+**2. Create a MySQL user (and optionally the database)**
+
+The setup wizard creates the database automatically if the MySQL user has sufficient privileges.
+
+**Self-hosted (LXC, VM, root server):** Just create a user and grant privileges — the setup wizard will create the database itself:
+
+```sql
+CREATE USER 'favorites'@'localhost' IDENTIFIED BY 'your-secure-password';
+GRANT ALL PRIVILEGES ON favorites.* TO 'favorites'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+**Shared webhost (restricted permissions):** Create both the database and the user via phpMyAdmin or your hoster's control panel first, then enter the credentials in the setup wizard. The wizard will skip the `CREATE DATABASE` step and use the existing database.
+
+**3. Set folder permissions**
+
+The `favicons/` folder must be writable by the web server:
+
+```bash
+chmod 755 /var/www/html/favorites/favicons
+```
+
+**4. Run the setup wizard**
+
+Open your browser and navigate to:
+
+```
+https://yourdomain.com/favorites/setup.php
+```
+
+Enter your database credentials, create an admin account and finish the setup.
+The wizard writes `config.php` and creates all required tables automatically.
+
+**5. Log in**
+
+```
+https://yourdomain.com/favorites/
+```
+
+> **Note:** `setup.php` is locked after the first run (`.setup_complete` marker file). To re-run it, delete that marker file.
+
+---
+
 ## Docker (Recommended for Easy Setup)
 
 Docker is the easiest way to run Favorites Manager — no PHP or MySQL installation needed on your host.
