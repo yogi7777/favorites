@@ -177,7 +177,9 @@ body {
 }
 
 .card-title {
-    font-size: calc(1rem * var(--ui-zoom));
+    font-size: 1rem;
+    margin: 0;
+    font-weight: 500;
 }
 
 .favorite {
@@ -284,7 +286,7 @@ footer a:active {
         column-count: 1; /* 1 Spalte */
     }
     .card-title {
-        font-size: calc(1.1rem * var(--ui-zoom));
+        font-size: 1rem;
     }
     .favorite a {
         font-size: 1.0rem;
