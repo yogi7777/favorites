@@ -281,3 +281,245 @@ footer a:active {
         font-size: 0.9rem;
     }
 }
+
+/* ================================================================
+   FREE CANVAS – Desktop Edit-Modus (≥992px, kein "Alle"-Tab)
+   ================================================================ */
+
+#categories.free-canvas {
+    position: relative;
+    column-count: unset !important;
+    min-height: 600px;
+    padding: 0 15px 80px;
+}
+
+.free-canvas .category,
+.free-canvas .note-tile {
+    position: absolute;
+    margin-bottom: 0;
+    cursor: grab;
+}
+
+.free-canvas .category {
+    width: 240px;
+}
+
+.free-canvas .category:active,
+.free-canvas .note-tile:active {
+    cursor: grabbing;
+}
+
+.free-canvas .category.dragging,
+.free-canvas .note-tile.dragging {
+    opacity: 0.82;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    z-index: 1000;
+}
+
+/* ================================================================
+   NOTE TILES – allgemein (Grid + Free Canvas)
+   ================================================================ */
+
+.note-tile {
+    width: 100%;
+    break-inside: avoid-column;
+    margin-bottom: 15px;
+    transition: background-color 0.2s;
+    box-sizing: border-box;
+}
+
+/* Resize-Handle nur im Free Canvas */
+.free-canvas .note-tile {
+    overflow: auto;
+    resize: both;
+    min-width: 150px;
+    min-height: 80px;
+}
+
+.note-card {
+    background-color: #343a40;
+    color: #f0f2f5;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.note-card .card-header {
+    background-color: #2b2d2f;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    flex-shrink: 0;
+    cursor: grab;
+    user-select: none;
+}
+
+.note-card .card-body {
+    flex-grow: 1;
+    padding: 8px 10px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Im Free Canvas: Card-Body füllt die gesamte Kachelhöhe */
+.free-canvas .note-card .card-body {
+    overflow: hidden;
+}
+
+/* ---- Note-Titel ---- */
+.note-header-title {
+    font-size: 1rem;
+    margin: 0;
+    font-weight: 500;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.note-title-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #495564;
+    color: #f0f2f5;
+    font-size: 1rem;
+    font-weight: 500;
+    padding: 0 4px;
+    outline: none;
+    min-width: 0;
+}
+
+.note-title-input:focus {
+    border-bottom-color: #5f7ea1;
+    background-color: rgba(95, 126, 161, 0.08);
+}
+
+/* ---- Textarea (Edit-Modus) ---- */
+.note-edit-area {
+    width: 100%;
+    flex-grow: 1;
+    background-color: #2e3338;
+    color: #dce3ec;
+    border: 1px solid #495564;
+    border-radius: 4px;
+    padding: 8px;
+    font-size: 0.9rem;
+    line-height: 1.55;
+    resize: none;            /* resize wird über das tile-element gesteuert */
+    outline: none;
+    font-family: inherit;
+    min-height: 130px;
+    box-sizing: border-box;
+}
+
+.note-edit-area:focus {
+    border-color: #5f7ea1;
+    background-color: #33393f;
+}
+
+/* Im Free Canvas: Textarea füllt die ganze Card-Body-Höhe */
+.free-canvas .note-tile .note-edit-area {
+    min-height: unset;
+    height: 100%;
+}
+
+/* ---- Markdown-View (View-Modus) ---- */
+.note-view {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: #dce3ec;
+    word-wrap: break-word;
+    overflow-y: auto;
+    flex-grow: 1;
+}
+
+.note-view h1,
+.note-view h2,
+.note-view h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0.5em 0 0.2em;
+    color: #e8ecf2;
+}
+.note-view h2 { font-size: 0.95rem; }
+.note-view h3 { font-size: 0.9rem; }
+
+.note-view p  { margin: 0.25em 0; }
+
+.note-view code {
+    background-color: #1c2025;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 0.85em;
+    font-family: 'Courier New', monospace;
+}
+
+.note-view pre {
+    background-color: #1c2025;
+    padding: 8px 10px;
+    border-radius: 4px;
+    overflow-x: auto;
+    margin: 0.4em 0;
+}
+
+.note-view pre code {
+    background: none;
+    padding: 0;
+}
+
+.note-view ul,
+.note-view ol {
+    padding-left: 1.4em;
+    margin: 0.25em 0;
+}
+
+.note-view a       { color: #7db3e0; }
+.note-view strong  { color: #e8ecf2; }
+.note-view hr      { border-color: #495564; margin: 0.5em 0; }
+
+/* ---- View vs. Edit-Sichtbarkeit ---- */
+/* Standard: View-Modus – Textarea verstecken */
+.note-edit-area,
+.note-title-input,
+.delete-note {
+    display: none;
+}
+
+/* Edit-Modus: body bekommt Klasse edit-mode */
+body.edit-mode .note-edit-area,
+body.edit-mode .note-title-input,
+body.edit-mode .delete-note {
+    display: block;
+}
+
+body.edit-mode .note-header-title {
+    display: none;
+}
+
+body.edit-mode .delete-note {
+    display: inline-block;
+}
+
+body.edit-mode .note-view {
+    display: none;
+}
+
+/* ================================================================
+   DELETE-Button in Note-Header
+   ================================================================ */
+.delete-note {
+    flex-shrink: 0;
+    padding: 2px 8px;
+    font-size: 0.78rem;
+    line-height: 1.4;
+}
+
+/* ================================================================
+   Note-Abschnitt in categories.php
+   ================================================================ */
+.notes-management-section {
+    margin-top: 2.5rem;
+}

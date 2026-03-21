@@ -15,6 +15,58 @@ $tabs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $activeTabId = $activeTab['id'] ?? null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // ----------------------------------------------------------------
+    // Note erstellen
+    // ----------------------------------------------------------------
+    if (isset($_POST['add_note'])) {
+        $title = trim($_POST['name'] ?? '');
+        if ($title !== '') {
+            $stmt = $pdo->prepare('INSERT INTO notes (user_id, title) VALUES (?, ?)');
+            $stmt->execute([$userId, $title]);
+            $noteId = (int)$pdo->lastInsertId();
+
+            // Immer dem 'alle'-Tab zuordnen
+            $stmt = $pdo->prepare("SELECT id FROM tabs WHERE user_id = ? AND slug = 'alle' LIMIT 1");
+            $stmt->execute([$userId]);
+            $defaultTabId = (int)$stmt->fetchColumn();
+
+            $tabsToAssign = [$defaultTabId];
+            foreach ($_POST['note_tabs'] ?? [] as $tid) {
+                $tid = (int)$tid;
+                if ($tid > 0 && $tid !== $defaultTabId) {
+                    // Tab-Eigentümerschaft prüfen
+                    $chk = $pdo->prepare('SELECT id FROM tabs WHERE id = ? AND user_id = ?');
+                    $chk->execute([$tid, $userId]);
+                    if ($chk->fetchColumn()) {
+                        $tabsToAssign[] = $tid;
+                    }
+                }
+            }
+
+            $maxPos = $pdo->prepare('SELECT COALESCE(MAX(position), -1) + 1 FROM note_tabs WHERE tab_id = ?');
+            $ins    = $pdo->prepare('INSERT INTO note_tabs (note_id, tab_id, position) VALUES (?, ?, ?)');
+            foreach ($tabsToAssign as $tid) {
+                $maxPos->execute([$tid]);
+                $ins->execute([$noteId, $tid, (int)$maxPos->fetchColumn()]);
+            }
+        }
+        header('Location: categories.php?tab=' . urlencode($activeTabSlug));
+        exit;
+    }
+
+    // ----------------------------------------------------------------
+    // Note löschen
+    // ----------------------------------------------------------------
+    if (isset($_POST['delete_note'])) {
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id > 0) {
+            $stmt = $pdo->prepare('DELETE FROM notes WHERE id = ? AND user_id = ?');
+            $stmt->execute([$id, $userId]);
+        }
+        header('Location: categories.php?tab=' . urlencode($activeTabSlug));
+        exit;
+    }
+
     if (isset($_POST['add_category'])) {
         $name = trim($_POST['name'] ?? '');
 
@@ -182,6 +234,23 @@ $stmt->execute([$userId, $userId]);
 foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
     $categoryTabMap[(int)$row['category_id']][] = (int)$row['tab_id'];
 }
+
+// Notes für die Verwaltungsansicht laden
+$stmt = $pdo->prepare('SELECT id, title FROM notes WHERE user_id = ? ORDER BY title ASC');
+$stmt->execute([$userId]);
+$allNotes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+$noteTabMap = [];
+$stmt = $pdo->prepare(
+    'SELECT nt.note_id, nt.tab_id
+     FROM note_tabs nt
+     JOIN notes n ON n.id = nt.note_id
+     WHERE n.user_id = ?'
+);
+$stmt->execute([$userId]);
+foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+    $noteTabMap[(int)$row['note_id']][] = (int)$row['tab_id'];
+}
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -238,11 +307,37 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
             <div class="container-fluid">
                 <form method="POST" class="mb-4">
                     <div class="row g-3">
+                        <div class="col-12">
+                            <div class="btn-group" role="group" aria-label="Typ">
+                                <input type="radio" class="btn-check" name="item_type" id="type_cat" value="category" checked>
+                                <label class="btn btn-outline-secondary" for="type_cat">📁 Favorites Kategorie</label>
+                                <input type="radio" class="btn-check" name="item_type" id="type_note" value="note">
+                                <label class="btn btn-outline-secondary" for="type_note">📝 Note</label>
+                            </div>
+                        </div>
                         <div class="col-md-8 col-12">
-                            <input type="text" name="name" class="form-control" placeholder="Category Name" required>
+                            <input type="text" name="name" class="form-control" placeholder="Name / Titel" required>
+                        </div>
+                        <div class="col-12" id="note-tab-section" style="display:none;">
+                            <label class="form-label mb-1 small text-muted">Note zusätzlich diesen Tabs zuordnen:</label>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <?php foreach ($tabs as $tab): ?>
+                                    <?php if ($tab['slug'] === 'alle') continue; ?>
+                                    <label class="form-check form-check-inline">
+                                        <input class="form-check-input" type="checkbox"
+                                               name="note_tabs[]" value="<?php echo (int)$tab['id']; ?>" checked>
+                                        <span class="form-check-label"><?php echo htmlspecialchars($tab['name']); ?></span>
+                                    </label>
+                                <?php endforeach; ?>
+                            </div>
                         </div>
                         <div class="col-md-4 col-12">
-                            <button type="submit" name="add_category" class="btn btn-secondary w-100">Add Category</button>
+                            <div id="btn-add-category">
+                                <button type="submit" name="add_category" class="btn btn-secondary w-100">Add Category</button>
+                            </div>
+                            <div id="btn-add-note" style="display:none;">
+                                <button type="submit" name="add_note" class="btn btn-secondary w-100">Add Note</button>
+                            </div>
                         </div>
                     </div>
                 </form>
@@ -299,6 +394,57 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
                     </form>
                 </div>
             </div>
+
+            <!-- ====================================================
+                 Notes-Verwaltung
+                 ==================================================== -->
+            <div class="container-fluid notes-management-section">
+                <h2 class="mb-3">Notes</h2>
+                <div class="table-responsive">
+                    <table class="table table-dark">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Titel</th>
+                                <th>Tabs</th>
+                                <th>Aktionen</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($allNotes as $note): ?>
+                                <tr>
+                                    <td><?php echo (int)$note['id']; ?></td>
+                                    <td><?php echo htmlspecialchars($note['title']); ?></td>
+                                    <td>
+                                        <div class="d-flex gap-2 flex-wrap align-items-center">
+                                            <?php foreach ($tabs as $tab): ?>
+                                                <?php
+                                                $assignedNoteTabs = $noteTabMap[(int)$note['id']] ?? [];
+                                                $isChecked        = in_array((int)$tab['id'], $assignedNoteTabs, true);
+                                                ?>
+                                                <label class="form-check form-check-inline">
+                                                    <input class="form-check-input" type="checkbox" disabled <?php echo $isChecked ? 'checked' : ''; ?>>
+                                                    <span class="form-check-label"><?php echo htmlspecialchars($tab['name']); ?></span>
+                                                </label>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <form method="POST" style="display:inline;">
+                                            <input type="hidden" name="id" value="<?php echo (int)$note['id']; ?>">
+                                            <button type="submit" name="delete_note"
+                                                    class="btn btn-sm btn-outline-danger">Delete</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                            <?php if (empty($allNotes)): ?>
+                                <tr><td colspan="4" class="text-muted">Noch keine Notes vorhanden.</td></tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -328,5 +474,16 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
     <?php include 'navigation.php'; ?>
     <script src="assets/src/bootstrap.bundle.min.js"></script>
     <script src="assets/script.js?v1.3"></script>
+    <script>
+    // Typ-Umschalter: Favorites Kategorie <-> Note
+    document.querySelectorAll('input[name="item_type"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+            const isNote = document.getElementById('type_note').checked;
+            document.getElementById('note-tab-section').style.display  = isNote ? '' : 'none';
+            document.getElementById('btn-add-category').style.display  = isNote ? 'none' : '';
+            document.getElementById('btn-add-note').style.display      = isNote ? '' : 'none';
+        });
+    });
+    </script>
 </body>
 </html>

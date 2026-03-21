@@ -28,12 +28,12 @@ $stmt->execute([$userId]);
 $allCategories = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 if ($activeTabSlug === 'alle') {
-    $stmt = $pdo->prepare('SELECT id, name, position FROM categories WHERE user_id = ? ORDER BY position ASC, name ASC');
+    $stmt = $pdo->prepare('SELECT id, name, position, NULL as pos_x, NULL as pos_y FROM categories WHERE user_id = ? ORDER BY position ASC, name ASC');
     $stmt->execute([$userId]);
     $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } else {
     $stmt = $pdo->prepare(
-        'SELECT c.id, c.name, c.position, ctp.position AS tab_position
+        'SELECT c.id, c.name, c.position, ctp.position AS tab_position, ctp.pos_x, ctp.pos_y
          FROM categories c
          JOIN category_tabs ct ON ct.category_id = c.id
          JOIN tabs t ON t.id = ct.tab_id AND t.user_id = c.user_id
@@ -79,6 +79,40 @@ foreach ($allCategories as $cat) {
         'favorites' => array_values($allFavsByCategory[(int)$cat['id']] ?? []),
     ];
 }
+
+// Notes laden (für aktuellen Tab)
+$notes = [];
+if ($activeTabSlug === 'alle') {
+    // Alle Notes des Users über den 'alle'-Tab-Eintrag
+    $alleTabRow = null;
+    foreach ($tabs as $t) {
+        if ($t['slug'] === 'alle') { $alleTabRow = $t; break; }
+    }
+    $alleTabId4Notes = $alleTabRow ? (int)$alleTabRow['id'] : null;
+    if ($alleTabId4Notes) {
+        $stmt = $pdo->prepare(
+            'SELECT n.id, n.title, n.content, nt.position,
+                    NULL AS pos_x, NULL AS pos_y, nt.width, nt.height, nt.tab_id
+             FROM notes n
+             JOIN note_tabs nt ON nt.note_id = n.id AND nt.tab_id = ?
+             WHERE n.user_id = ?
+             ORDER BY nt.position ASC, n.title ASC'
+        );
+        $stmt->execute([$alleTabId4Notes, $userId]);
+        $notes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+} elseif ($activeTabId) {
+    $stmt = $pdo->prepare(
+        'SELECT n.id, n.title, n.content, nt.position,
+                nt.pos_x, nt.pos_y, nt.width, nt.height, nt.tab_id
+         FROM notes n
+         JOIN note_tabs nt ON nt.note_id = n.id AND nt.tab_id = ?
+         WHERE n.user_id = ?
+         ORDER BY nt.position ASC, n.title ASC'
+    );
+    $stmt->execute([$activeTabId, $userId]);
+    $notes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -90,7 +124,7 @@ foreach ($allCategories as $cat) {
     <link href="assets/src/bootstrap.min.css" rel="stylesheet">
     <link href="assets/style.css" rel="stylesheet">
 </head>
-<body data-bs-theme="dark">
+<body data-bs-theme="dark"<?php if ($mode === 'edit'): ?> class="edit-mode"<?php endif; ?>>
     <div class="container-fluid p-0 m-0">
         <div class="top-bar sticky-top">
             <div class="tabs-and-search">
@@ -153,9 +187,14 @@ foreach ($allCategories as $cat) {
             </div>
         <?php endif; ?>
 
-        <div id="categories" <?php if ($mode === 'edit'): ?>data-sortable data-tab-slug="<?php echo htmlspecialchars($activeTabSlug); ?>"<?php endif; ?>>
+        <div id="categories" <?php if ($mode === 'edit'): ?>data-sortable data-tab-slug="<?php echo htmlspecialchars($activeTabSlug); ?>" data-tab-id="<?php echo (int)$activeTabId; ?>"<?php endif; ?>>
             <?php foreach ($categories as $category): ?>
-                <div class="category" data-category-id="<?php echo (int)$category['id']; ?>" <?php if ($mode === 'edit'): ?>draggable="true"<?php endif; ?> ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="this.classList.remove('dragover')">
+                <div class="category" data-category-id="<?php echo (int)$category['id']; ?>"
+                     data-pos-x="<?php echo $category['pos_x'] !== null ? (int)$category['pos_x'] : ''; ?>"
+                     data-pos-y="<?php echo $category['pos_y'] !== null ? (int)$category['pos_y'] : ''; ?>"
+                     data-tab-id="<?php echo (int)$activeTabId; ?>"
+                     <?php if ($mode === 'edit'): ?>draggable="true"<?php endif; ?>
+                     ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="this.classList.remove('dragover')">
                             <div class="card category-card">
                                 <div class="card-header">
                                     <h5 class="card-title"><?php echo htmlspecialchars($category['name']); ?></h5>
@@ -177,6 +216,34 @@ foreach ($allCategories as $cat) {
                                 </div>
                             </div>
                         </div>
+            <?php endforeach; ?>
+            <?php foreach ($notes as $note): ?>
+                <div class="note-tile"
+                     data-note-id="<?php echo (int)$note['id']; ?>"
+                     data-tab-id="<?php echo (int)$note['tab_id']; ?>"
+                     data-pos-x="<?php echo $note['pos_x'] !== null ? (int)$note['pos_x'] : ''; ?>"
+                     data-pos-y="<?php echo $note['pos_y'] !== null ? (int)$note['pos_y'] : ''; ?>"
+                     data-width="<?php echo (int)($note['width'] ?? 360); ?>"
+                     data-height="<?php echo (int)($note['height'] ?? 200); ?>">
+                    <div class="card note-card">
+                        <div class="card-header">
+                            <h5 class="note-header-title"><?php echo htmlspecialchars($note['title']); ?></h5>
+                            <input type="text" class="note-title-input"
+                                   value="<?php echo htmlspecialchars($note['title']); ?>"
+                                   placeholder="Titel">
+                            <?php if ($mode === 'edit'): ?>
+                                <button class="btn btn-sm btn-outline-danger delete-note" title="Note löschen">✕</button>
+                            <?php endif; ?>
+                        </div>
+                        <div class="card-body">
+                            <div class="note-view"
+                                 data-raw="<?php echo htmlspecialchars($note['content'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
+                            ></div>
+                            <textarea class="note-edit-area"
+                                      placeholder="Notiz hier eingeben…&#10;Markdown wird unterstützt: **fett**, *kursiv*, # Titel, - Liste"><?php echo htmlspecialchars($note['content'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea>
+                        </div>
+                    </div>
+                </div>
             <?php endforeach; ?>
         </div>
 
@@ -272,8 +339,9 @@ foreach ($allCategories as $cat) {
     <script>window.favSearchData = <?= json_encode($searchData, JSON_HEX_TAG | JSON_HEX_AMP) ?>;</script>
     <script src="assets/src/bootstrap.bundle.min.js"></script>
     <script src="assets/script.js?v1.3"></script>
+    <script src="assets/notes.js?v1.0"></script>
     <?php if ($mode === 'edit'): ?>
-        <script src="assets/sort.js?v1.3"></script>
+        <script src="assets/sort.js?v1.4"></script>
     <?php endif; ?>
 </body>
 </html>
