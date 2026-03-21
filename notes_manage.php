@@ -268,10 +268,8 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
                                         </div>
                                     </td>
                                     <td>
-                                        <form method="POST" style="display:inline;">
-                                            <input type="hidden" name="id" value="<?php echo (int)$note['id']; ?>">
-                                            <button type="submit" name="delete_note" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to delete this note? This cannot be undone.');">Delete</button>
-                                        </form>
+                                        <button type="button" class="btn btn-sm btn-outline-danger"
+                                            onclick="confirmDeleteNote(<?php echo (int)$note['id']; ?>)">Delete</button>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -286,8 +284,20 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
         </div>
     </div>
 
+    <form method="POST" id="delete-note-form" style="display:none;">
+        <input type="hidden" name="id" id="delete-note-id" value="">
+        <input type="hidden" name="delete_note" value="1">
+    </form>
+
     <?php include 'navigation.php'; ?>
     <script src="assets/src/bootstrap.bundle.min.js"></script>
     <script src="assets/script.js?v1.4"></script>
+    <script>
+        function confirmDeleteNote(id) {
+            if (!confirm('Are you sure you want to delete this note? This cannot be undone.')) return;
+            document.getElementById('delete-note-id').value = id;
+            document.getElementById('delete-note-form').submit();
+        }
+    </script>
 </body>
 </html>
