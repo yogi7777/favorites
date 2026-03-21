@@ -18,7 +18,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// FREE CANVAS – nur Drag-Handler (Layout macht notes.js)
 // FREE CANVAS – drag handler only (layout handled by notes.js)
 function attachFreeDrag(container, tabId) {
     var dragged = null;
@@ -67,8 +66,7 @@ function attachFreeDrag(container, tabId) {
                 body: 'action=update_position&id=' + encodeURIComponent(noteId) +
                       '&tab_id=' + encodeURIComponent(tid) +
                       '&pos_x=' + x + '&pos_y=' + y
-            }).catch(function(err) { console.error('Error saving note position:', err); });
-                    }).catch(function(err) { console.error('Error saving note position:', err); });
+                }).catch(function(err) { console.error('Error saving note position:', err); });
         } else {
             var catId = dragged.dataset.categoryId;
             fetch('notes.php', {
@@ -77,8 +75,7 @@ function attachFreeDrag(container, tabId) {
                 body: 'action=update_cat_position&cat_id=' + encodeURIComponent(catId) +
                       '&tab_id=' + encodeURIComponent(tabId) +
                       '&pos_x=' + x + '&pos_y=' + y
-            }).catch(function(err) { console.error('Error saving category position:', err); });
-                    }).catch(function(err) { console.error('Error saving category position:', err); });
+                }).catch(function(err) { console.error('Error saving category position:', err); });
         }
 
         dragged = null;
@@ -86,7 +83,6 @@ function attachFreeDrag(container, tabId) {
     });
 }
 
-// GRID SORT MODE – Mobile / "Alle"-Tab
 // GRID SORT MODE – mobile / "Alle" tab
 function initGridSort(container, tabSlug) {
     var draggedItem = null;
