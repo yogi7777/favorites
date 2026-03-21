@@ -13,28 +13,39 @@ $tabs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 [$activeTabSlug, $activeTab] = resolveActiveTab($tabs, $_GET['tab'] ?? 'alle');
 $activeTabId = $activeTab['id'] ?? null;
+$addNoteError = '';
+
+$defaultTabId = null;
+$validNonDefaultTabIds = [];
+foreach ($tabs as $tab) {
+    if ($tab['slug'] === 'alle') {
+        $defaultTabId = (int)$tab['id'];
+    } else {
+        $validNonDefaultTabIds[] = (int)$tab['id'];
+    }
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['add_note'])) {
         $title = trim($_POST['name'] ?? '');
-        if ($title !== '') {
+        $selectedTabs = [];
+        foreach ($_POST['note_tabs'] ?? [] as $tid) {
+            $tid = (int)$tid;
+            if (in_array($tid, $validNonDefaultTabIds, true)) {
+                $selectedTabs[] = $tid;
+            }
+        }
+        $selectedTabs = array_values(array_unique($selectedTabs));
+
+        if ($title !== '' && !empty($selectedTabs) && $defaultTabId !== null) {
             $stmt = $pdo->prepare('INSERT INTO notes (user_id, title) VALUES (?, ?)');
             $stmt->execute([$userId, $title]);
             $noteId = (int)$pdo->lastInsertId();
 
-            $stmt = $pdo->prepare("SELECT id FROM tabs WHERE user_id = ? AND slug = 'alle' LIMIT 1");
-            $stmt->execute([$userId]);
-            $defaultTabId = (int)$stmt->fetchColumn();
-
             $tabsToAssign = [$defaultTabId];
-            foreach ($_POST['note_tabs'] ?? [] as $tid) {
-                $tid = (int)$tid;
-                if ($tid > 0 && $tid !== $defaultTabId) {
-                    $chk = $pdo->prepare('SELECT id FROM tabs WHERE id = ? AND user_id = ?');
-                    $chk->execute([$tid, $userId]);
-                    if ($chk->fetchColumn()) {
-                        $tabsToAssign[] = $tid;
-                    }
+            foreach ($selectedTabs as $tid) {
+                if ($tid !== $defaultTabId) {
+                    $tabsToAssign[] = $tid;
                 }
             }
 
@@ -44,9 +55,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $maxPos->execute([$tid]);
                 $ins->execute([$noteId, $tid, (int)$maxPos->fetchColumn()]);
             }
+
+            header('Location: notes_manage.php?tab=' . urlencode($activeTabSlug));
+            exit;
         }
-        header('Location: notes_manage.php?tab=' . urlencode($activeTabSlug));
-        exit;
+
+        if ($title === '') {
+            $addNoteError = 'Note title is required.';
+        } elseif (empty($selectedTabs)) {
+            $addNoteError = 'Please assign the note to at least one tab.';
+        } else {
+            $addNoteError = 'Could not add note. Please try again.';
+        }
     }
 
     if (isset($_POST['delete_note'])) {
@@ -202,7 +222,10 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
 
         <div class="row cat-edit px-3">
             <div class="container-fluid">
-                <form method="POST" class="mb-4">
+                <?php if ($addNoteError !== ''): ?>
+                    <div class="alert alert-warning" role="alert"><?php echo htmlspecialchars($addNoteError); ?></div>
+                <?php endif; ?>
+                <form method="POST" class="mb-4" id="add-note-form">
                     <div class="row g-3">
                         <div class="col-md-8 col-12">
                             <input type="text" name="name" class="form-control" placeholder="Note title" required>
@@ -213,7 +236,7 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
                                 <?php foreach ($tabs as $tab): ?>
                                     <?php if ($tab['slug'] === 'alle') continue; ?>
                                     <label class="form-check form-check-inline">
-                                        <input class="form-check-input" type="checkbox" name="note_tabs[]" value="<?php echo (int)$tab['id']; ?>" checked>
+                                        <input class="form-check-input add-note-tab" type="checkbox" name="note_tabs[]" value="<?php echo (int)$tab['id']; ?>">
                                         <span class="form-check-label"><?php echo htmlspecialchars($tab['name']); ?></span>
                                     </label>
                                 <?php endforeach; ?>
@@ -288,6 +311,18 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
     <script src="assets/src/bootstrap.bundle.min.js"></script>
     <script src="assets/script.js?v1.4"></script>
     <script>
+        (function () {
+            const form = document.getElementById('add-note-form');
+            if (!form) return;
+            form.addEventListener('submit', function (event) {
+                const checked = form.querySelectorAll('.add-note-tab:checked').length;
+                if (checked === 0) {
+                    event.preventDefault();
+                    alert('Please select at least one tab before adding a note.');
+                }
+            });
+        })();
+
         function confirmDeleteNote(noteId) {
             if (!confirm('Are you sure you want to delete this note? This cannot be undone.')) return;
             fetch('notes_manage.php?tab=<?php echo urlencode($activeTabSlug); ?>', {

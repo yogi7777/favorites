@@ -13,12 +13,31 @@ $tabs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 [$activeTabSlug, $activeTab] = resolveActiveTab($tabs, $_GET['tab'] ?? 'alle');
 $activeTabId = $activeTab['id'] ?? null;
+$addCategoryError = '';
+
+$defaultTabId = null;
+$validNonDefaultTabIds = [];
+foreach ($tabs as $tab) {
+    if ($tab['slug'] === 'alle') {
+        $defaultTabId = (int)$tab['id'];
+    } else {
+        $validNonDefaultTabIds[] = (int)$tab['id'];
+    }
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['add_category'])) {
         $name = trim($_POST['name'] ?? '');
+        $selectedTabs = [];
+        foreach ($_POST['cat_tabs'] ?? [] as $tid) {
+            $tid = (int)$tid;
+            if (in_array($tid, $validNonDefaultTabIds, true)) {
+                $selectedTabs[] = $tid;
+            }
+        }
+        $selectedTabs = array_values(array_unique($selectedTabs));
 
-        if ($name !== '') {
+        if ($name !== '' && !empty($selectedTabs) && $defaultTabId !== null) {
             $stmt = $pdo->prepare('SELECT COALESCE(MAX(position), -1) + 1 FROM categories WHERE user_id = ?');
             $stmt->execute([$userId]);
             $newPosition = (int)$stmt->fetchColumn();
@@ -27,19 +46,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$userId, $name, $newPosition]);
             $categoryId = (int)$pdo->lastInsertId();
 
-            $stmt = $pdo->prepare("SELECT id FROM tabs WHERE user_id = ? AND slug = 'alle' LIMIT 1");
-            $stmt->execute([$userId]);
-            $defaultTabId = (int)$stmt->fetchColumn();
-
             $tabsToAssign = [$defaultTabId];
-            foreach ($_POST['cat_tabs'] ?? [] as $tid) {
-                $tid = (int)$tid;
-                if ($tid > 0 && $tid !== $defaultTabId) {
-                    $chk = $pdo->prepare('SELECT id FROM tabs WHERE id = ? AND user_id = ?');
-                    $chk->execute([$tid, $userId]);
-                    if ($chk->fetchColumn()) {
-                        $tabsToAssign[] = $tid;
-                    }
+            foreach ($selectedTabs as $tid) {
+                if ($tid !== $defaultTabId) {
+                    $tabsToAssign[] = $tid;
                 }
             }
 
@@ -52,10 +62,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $maxTabPos->execute([$tid]);
                 $insertPos->execute([$tid, $categoryId, (int)$maxTabPos->fetchColumn()]);
             }
+
+            header('Location: categories.php?tab=' . urlencode($activeTabSlug));
+            exit;
         }
 
-        header('Location: categories.php?tab=' . urlencode($activeTabSlug));
-        exit;
+        if ($name === '') {
+            $addCategoryError = 'Category name is required.';
+        } elseif (empty($selectedTabs)) {
+            $addCategoryError = 'Please assign the category to at least one tab.';
+        } else {
+            $addCategoryError = 'Could not add category. Please try again.';
+        }
     }
 
     if (isset($_POST['delete_category'])) {
@@ -238,7 +256,10 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
 
         <div class="row cat-edit px-3">
             <div class="container-fluid">
-                <form method="POST" class="mb-4">
+                <?php if ($addCategoryError !== ''): ?>
+                    <div class="alert alert-warning" role="alert"><?php echo htmlspecialchars($addCategoryError); ?></div>
+                <?php endif; ?>
+                <form method="POST" class="mb-4" id="add-category-form">
                     <div class="row g-3">
                         <div class="col-md-8 col-12">
                             <input type="text" name="name" class="form-control" placeholder="Category name" required>
@@ -249,7 +270,7 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
                                 <?php foreach ($tabs as $tab): ?>
                                     <?php if ($tab['slug'] === 'alle') continue; ?>
                                     <label class="form-check form-check-inline">
-                                        <input class="form-check-input" type="checkbox" name="cat_tabs[]" value="<?php echo (int)$tab['id']; ?>" checked>
+                                        <input class="form-check-input add-category-tab" type="checkbox" name="cat_tabs[]" value="<?php echo (int)$tab['id']; ?>">
                                         <span class="form-check-label"><?php echo htmlspecialchars($tab['name']); ?></span>
                                     </label>
                                 <?php endforeach; ?>
@@ -318,5 +339,18 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
     <?php include 'navigation.php'; ?>
     <script src="assets/src/bootstrap.bundle.min.js"></script>
     <script src="assets/script.js?v1.4"></script>
+    <script>
+        (function () {
+            const form = document.getElementById('add-category-form');
+            if (!form) return;
+            form.addEventListener('submit', function (event) {
+                const checked = form.querySelectorAll('.add-category-tab:checked').length;
+                if (checked === 0) {
+                    event.preventDefault();
+                    alert('Please select at least one tab before adding a category.');
+                }
+            });
+        })();
+    </script>
 </body>
 </html>
