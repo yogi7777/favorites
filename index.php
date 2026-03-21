@@ -80,7 +80,7 @@ foreach ($allCategories as $cat) {
     ];
 }
 
-// Notes laden (für aktuellen Tab)
+// Load notes for current tab
 $notes = [];
 if ($activeTabSlug === 'alle') {
     // Alle Notes des Users über den 'alle'-Tab-Eintrag
@@ -115,7 +115,7 @@ if ($activeTabSlug === 'alle') {
 }
 ?>
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -231,11 +231,8 @@ if ($activeTabSlug === 'alle') {
                     <div class="card note-card">
                         <div class="card-header">
                             <h5 class="note-header-title"><?php echo htmlspecialchars($note['title']); ?></h5>
-                            <input type="text" class="note-title-input"
-                                   value="<?php echo htmlspecialchars($note['title']); ?>"
-                                   placeholder="Titel">
                             <?php if ($mode === 'edit'): ?>
-                                <button class="btn btn-sm btn-outline-danger delete-note" title="Note löschen">✕</button>
+                                <button class="btn btn-sm btn-outline-danger delete-note" title="Delete note">✕</button>
                             <?php endif; ?>
                         </div>
                         <div class="card-body">
@@ -243,7 +240,7 @@ if ($activeTabSlug === 'alle') {
                                  data-raw="<?php echo htmlspecialchars($note['content'] ?? '', ENT_QUOTES, 'UTF-8'); ?>"
                             ></div>
                             <textarea class="note-edit-area"
-                                      placeholder="Notiz hier eingeben…&#10;Markdown wird unterstützt: **fett**, *kursiv*, # Titel, - Liste"><?php echo htmlspecialchars($note['content'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea>
+                                      placeholder="Enter note…&#10;Markdown supported: **bold**, *italic*, # Heading, - List"><?php echo htmlspecialchars($note['content'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea>
                         </div>
                     </div>
                 </div>

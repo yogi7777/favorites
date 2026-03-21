@@ -1,7 +1,7 @@
 /**
- * sort.js (nur Edit-Modus) – Drag-Verhalten:
- *   - Free-Canvas (>=992px, kein "Alle"-Tab): Mouse-Drag; Layout macht notes.js.
- *   - Grid-Sort (Mobile / "Alle"-Tab): Drag-to-Swap, Reihenfolge per AJAX.
+ * sort.js (edit mode only) – drag behaviour:
+ *   - Free Canvas (>=992px, not "Alle" tab): mouse drag; layout handled by notes.js.
+ *   - Grid Sort (mobile / "Alle" tab): drag-to-swap, order saved via AJAX.
  */
 document.addEventListener('DOMContentLoaded', function() {
     var container = document.querySelector('[data-sortable]');
@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // FREE CANVAS – nur Drag-Handler (Layout macht notes.js)
+// FREE CANVAS – drag handler only (layout handled by notes.js)
 function attachFreeDrag(container, tabId) {
     var dragged = null;
     var offsetX = 0;
@@ -66,7 +67,8 @@ function attachFreeDrag(container, tabId) {
                 body: 'action=update_position&id=' + encodeURIComponent(noteId) +
                       '&tab_id=' + encodeURIComponent(tid) +
                       '&pos_x=' + x + '&pos_y=' + y
-            }).catch(function(err) { console.error('Note-Position Fehler:', err); });
+            }).catch(function(err) { console.error('Error saving note position:', err); });
+                    }).catch(function(err) { console.error('Error saving note position:', err); });
         } else {
             var catId = dragged.dataset.categoryId;
             fetch('notes.php', {
@@ -75,7 +77,8 @@ function attachFreeDrag(container, tabId) {
                 body: 'action=update_cat_position&cat_id=' + encodeURIComponent(catId) +
                       '&tab_id=' + encodeURIComponent(tabId) +
                       '&pos_x=' + x + '&pos_y=' + y
-            }).catch(function(err) { console.error('Kategorie-Position Fehler:', err); });
+            }).catch(function(err) { console.error('Error saving category position:', err); });
+                    }).catch(function(err) { console.error('Error saving category position:', err); });
         }
 
         dragged = null;
@@ -84,6 +87,7 @@ function attachFreeDrag(container, tabId) {
 }
 
 // GRID SORT MODE – Mobile / "Alle"-Tab
+// GRID SORT MODE – mobile / "Alle" tab
 function initGridSort(container, tabSlug) {
     var draggedItem = null;
 
@@ -144,5 +148,5 @@ function saveCategoryOrder(container, tabSlug) {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify(order)
-    }).catch(function(err) { console.error('Reihenfolge-Fehler:', err); });
+    }).catch(function(err) { console.error('Error saving order:', err); });
 }

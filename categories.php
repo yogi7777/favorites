@@ -16,7 +16,8 @@ $activeTabId = $activeTab['id'] ?? null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // ----------------------------------------------------------------
-    // Note erstellen
+    // ----------------------------------------------------------------
+    // Create note
     // ----------------------------------------------------------------
     if (isset($_POST['add_note'])) {
         $title = trim($_POST['name'] ?? '');
@@ -26,6 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $noteId = (int)$pdo->lastInsertId();
 
             // Immer dem 'alle'-Tab zuordnen
+                        // Always assign to 'alle' tab
             $stmt = $pdo->prepare("SELECT id FROM tabs WHERE user_id = ? AND slug = 'alle' LIMIT 1");
             $stmt->execute([$userId]);
             $defaultTabId = (int)$stmt->fetchColumn();
@@ -34,7 +36,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             foreach ($_POST['note_tabs'] ?? [] as $tid) {
                 $tid = (int)$tid;
                 if ($tid > 0 && $tid !== $defaultTabId) {
-                    // Tab-Eigentümerschaft prüfen
+                    // Verify tab ownership
+                                // Verify tab ownership
                     $chk = $pdo->prepare('SELECT id FROM tabs WHERE id = ? AND user_id = ?');
                     $chk->execute([$tid, $userId]);
                     if ($chk->fetchColumn()) {
@@ -55,7 +58,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // ----------------------------------------------------------------
-    // Note löschen
+    // ----------------------------------------------------------------
+    // Delete note
     // ----------------------------------------------------------------
     if (isset($_POST['delete_note'])) {
         $id = (int)($_POST['id'] ?? 0);
@@ -86,16 +90,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $insertMap = $pdo->prepare('INSERT IGNORE INTO category_tabs (category_id, tab_id) VALUES (?, ?)');
             $insertPos = $pdo->prepare('INSERT INTO category_tab_positions (tab_id, category_id, position) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE position = VALUES(position)');
 
-            $insertMap->execute([$categoryId, $defaultTabId]);
-            $insertPos->execute([$defaultTabId, $categoryId, $newPosition]);
+            $tabsToAssign = [$defaultTabId];
+            foreach ($_POST['cat_tabs'] ?? [] as $tid) {
+                $tid = (int)$tid;
+                if ($tid > 0 && $tid !== $defaultTabId) {
+                    $chk = $pdo->prepare('SELECT id FROM tabs WHERE id = ? AND user_id = ?');
+                    $chk->execute([$tid, $userId]);
+                    if ($chk->fetchColumn()) {
+                        $tabsToAssign[] = $tid;
+                    }
+                }
+            }
 
-            if ($activeTabId && $activeTabSlug !== 'alle' && $activeTabId !== $defaultTabId) {
-                $stmt = $pdo->prepare('SELECT COALESCE(MAX(position), -1) + 1 FROM category_tab_positions WHERE tab_id = ?');
-                $stmt->execute([$activeTabId]);
-                $tabPosition = (int)$stmt->fetchColumn();
-
-                $insertMap->execute([$categoryId, $activeTabId]);
-                $insertPos->execute([$activeTabId, $categoryId, $tabPosition]);
+            $maxTabPos = $pdo->prepare('SELECT COALESCE(MAX(position), -1) + 1 FROM category_tab_positions WHERE tab_id = ?');
+            foreach ($tabsToAssign as $tid) {
+                $insertMap->execute([$categoryId, $tid]);
+                $maxTabPos->execute([$tid]);
+                $insertPos->execute([$tid, $categoryId, (int)$maxTabPos->fetchColumn()]);
             }
         }
 
@@ -141,8 +152,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (isset($_POST['save_all_category_tabs'])) {
-        $catIds = $_POST['cat_ids'] ?? [];
-        $allTabsPost = $_POST['tabs'] ?? [];
+        $catIds      = $_POST['cat_ids']    ?? [];
+        $allTabsPost = $_POST['tabs']       ?? [];
+        $catNames    = $_POST['cat_names']  ?? [];
 
         $stmt = $pdo->prepare('SELECT id, slug FROM tabs WHERE user_id = ? ORDER BY position ASC');
         $stmt->execute([$userId]);
@@ -166,12 +178,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $checkCatStmt     = $pdo->prepare('SELECT id FROM categories WHERE id = ? AND user_id = ? LIMIT 1');
         $getTabsStmt      = $pdo->prepare('SELECT tab_id FROM category_tabs WHERE category_id = ?');
 
+    $updateNameStmt = $pdo->prepare('UPDATE categories SET name = ? WHERE id = ? AND user_id = ?');
+
         foreach ($catIds as $rawCatId) {
             $categoryId = (int)$rawCatId;
 
             $checkCatStmt->execute([$categoryId, $userId]);
             if (!$checkCatStmt->fetchColumn()) {
                 continue;
+            }
+
+            $newName = trim($catNames[$categoryId] ?? '');
+            if ($newName !== '') {
+                $updateNameStmt->execute([$newName, $categoryId, $userId]);
             }
 
             $rawSelected = $allTabsPost[$categoryId] ?? [];
@@ -214,7 +233,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header('Location: categories.php?tab=' . urlencode($activeTabSlug));
         exit;
     }
+
+    if (isset($_POST['save_all_note_tabs'])) {
+        $noteIds         = $_POST['note_ids']   ?? [];
+        $allNoteTabsPost = $_POST['note_tabs']  ?? [];
+        $noteNames       = $_POST['note_names'] ?? [];
+
+        $stmt = $pdo->prepare('SELECT id, slug FROM tabs WHERE user_id = ? ORDER BY position ASC');
+        $stmt->execute([$userId]);
+        $userTabs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $validTabIds  = [];
+        $defaultTabId = null;
+        foreach ($userTabs as $tab) {
+            $validTabIds[] = (int)$tab['id'];
+            if ($tab['slug'] === 'alle') $defaultTabId = (int)$tab['id'];
+        }
+
+        $stmtCheck   = $pdo->prepare('SELECT id FROM notes WHERE id = ? AND user_id = ? LIMIT 1');
+        $stmtRename  = $pdo->prepare('UPDATE notes SET title = ? WHERE id = ? AND user_id = ?');
+        $stmtGetTabs = $pdo->prepare('SELECT tab_id FROM note_tabs WHERE note_id = ?');
+        $stmtDel     = $pdo->prepare('DELETE FROM note_tabs WHERE note_id = ? AND tab_id = ?');
+        $stmtMaxPos  = $pdo->prepare('SELECT COALESCE(MAX(position), -1) + 1 FROM note_tabs WHERE tab_id = ?');
+        $stmtIns     = $pdo->prepare('INSERT IGNORE INTO note_tabs (note_id, tab_id, position) VALUES (?, ?, ?)');
+
+        foreach ($noteIds as $rawNoteId) {
+            $noteId = (int)$rawNoteId;
+            $stmtCheck->execute([$noteId, $userId]);
+            if (!$stmtCheck->fetchColumn()) continue;
+
+            $name = trim($noteNames[$noteId] ?? '');
+            if ($name !== '') {
+                $stmtRename->execute([$name, $noteId, $userId]);
+            }
+
+            $rawSelected = $allNoteTabsPost[$noteId] ?? [];
+            $selected = [];
+            foreach ($rawSelected as $tabId) {
+                $tabId = (int)$tabId;
+                if (in_array($tabId, $validTabIds, true)) $selected[] = $tabId;
+            }
+            if ($defaultTabId !== null && !in_array($defaultTabId, $selected, true)) {
+                $selected[] = $defaultTabId;
+            }
+            $selected = array_values(array_unique($selected));
+
+            $stmtGetTabs->execute([$noteId]);
+            $currentTabs = array_map('intval', $stmtGetTabs->fetchAll(PDO::FETCH_COLUMN));
+
+            foreach ($currentTabs as $tabId) {
+                if (!in_array($tabId, $selected, true)) $stmtDel->execute([$noteId, $tabId]);
+            }
+            foreach ($selected as $tabId) {
+                if (!in_array($tabId, $currentTabs, true)) {
+                    $stmtMaxPos->execute([$tabId]);
+                    $stmtIns->execute([$noteId, $tabId, (int)$stmtMaxPos->fetchColumn()]);
+                }
+            }
+        }
+
+        header('Location: categories.php?tab=' . urlencode($activeTabSlug));
+        exit;
+    }
 }
+
+
 
 // Load all categories (not filtered by tab – management shows all)
 $stmt = $pdo->prepare('SELECT id, name FROM categories WHERE user_id = ? ORDER BY name ASC');
@@ -235,7 +318,8 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
     $categoryTabMap[(int)$row['category_id']][] = (int)$row['tab_id'];
 }
 
-// Notes für die Verwaltungsansicht laden
+// Load notes for management view
+// Load notes for management view
 $stmt = $pdo->prepare('SELECT id, title FROM notes WHERE user_id = ? ORDER BY title ASC');
 $stmt->execute([$userId]);
 $allNotes = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -253,7 +337,7 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
 }
 ?>
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -310,16 +394,30 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
                         <div class="col-12">
                             <div class="btn-group" role="group" aria-label="Typ">
                                 <input type="radio" class="btn-check" name="item_type" id="type_cat" value="category" checked>
-                                <label class="btn btn-outline-secondary" for="type_cat">📁 Favorites Kategorie</label>
+                                <label class="btn btn-outline-secondary" for="type_cat">📁 Favorites Category</label>
                                 <input type="radio" class="btn-check" name="item_type" id="type_note" value="note">
                                 <label class="btn btn-outline-secondary" for="type_note">📝 Note</label>
                             </div>
                         </div>
                         <div class="col-md-8 col-12">
-                            <input type="text" name="name" class="form-control" placeholder="Name / Titel" required>
+                                                    <input type="text" name="name" class="form-control" placeholder="Name / Title" required>
                         </div>
                         <div class="col-12" id="note-tab-section" style="display:none;">
-                            <label class="form-label mb-1 small text-muted">Note zusätzlich diesen Tabs zuordnen:</label>
+                                                    <div class="col-12" id="cat-tab-section">
+                                                        <label class="form-label mb-1 small text-muted">Assign category to tabs:</label>
+                                                        <div class="d-flex gap-2 flex-wrap">
+                                                            <?php foreach ($tabs as $tab): ?>
+                                                                <?php if ($tab['slug'] === 'alle') continue; ?>
+                                                                <label class="form-check form-check-inline">
+                                                                    <input class="form-check-input" type="checkbox"
+                                                                           name="cat_tabs[]" value="<?php echo (int)$tab['id']; ?>" checked>
+                                                                    <span class="form-check-label"><?php echo htmlspecialchars($tab['name']); ?></span>
+                                                                </label>
+                                                            <?php endforeach; ?>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-12" id="note-tab-section" style="display:none;">
+                            <label class="form-label mb-1 small text-muted">Assign note to tabs:</label>
                             <div class="d-flex gap-2 flex-wrap">
                                 <?php foreach ($tabs as $tab): ?>
                                     <?php if ($tab['slug'] === 'alle') continue; ?>
@@ -346,7 +444,7 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
             <div class="container-fluid">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h2 class="mb-0">Categories</h2>
-                    <button type="submit" form="save-all-cats-form" name="save_all_category_tabs" class="btn btn-primary">Speichern</button>
+                    <button type="submit" form="save-all-cats-form" name="save_all_category_tabs" class="btn btn-primary">Save</button>
                 </div>
                 <div class="table-responsive" id="categoriesTable">
                     <form method="POST" id="save-all-cats-form">
@@ -364,7 +462,7 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
                                 <tr class="category-row" data-name="<?php echo htmlspecialchars($category['name']); ?>">
                                     <input type="hidden" name="cat_ids[]" value="<?php echo (int)$category['id']; ?>">
                                     <td><?php echo (int)$category['id']; ?></td>
-                                    <td><?php echo htmlspecialchars($category['name']); ?></td>
+                                    <td><input type="text" class="form-control form-control-sm" name="cat_names[<?php echo (int)$category['id']; ?>]" value="<?php echo htmlspecialchars($category['name']); ?>"></td>
                                     <td>
                                         <div class="d-flex gap-2 flex-wrap align-items-center">
                                             <?php foreach ($tabs as $tab): ?>
@@ -381,7 +479,6 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
                                         </div>
                                     </td>
                                     <td>
-                                        <button class="btn btn-sm btn-outline-warning edit-category" data-id="<?php echo (int)$category['id']; ?>" data-name="<?php echo htmlspecialchars($category['name']); ?>">Edit</button>
                                         <form method="POST" style="display:inline;">
                                             <input type="hidden" name="id" value="<?php echo (int)$category['id']; ?>">
                                             <button type="submit" name="delete_category" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure? This will delete all favorites in this category.');">Delete</button>
@@ -396,34 +493,44 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
             </div>
 
             <!-- ====================================================
-                 Notes-Verwaltung
+                 Notes management
                  ==================================================== -->
             <div class="container-fluid notes-management-section">
-                <h2 class="mb-3">Notes</h2>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="mb-0">Notes</h2>
+                    <button type="submit" form="save-all-notes-form" name="save_all_note_tabs" class="btn btn-primary">Save</button>
+                </div>
                 <div class="table-responsive">
+                    <form method="POST" id="save-all-notes-form">
                     <table class="table table-dark">
                         <thead>
                             <tr>
                                 <th>ID</th>
-                                <th>Titel</th>
+                                <th>Title</th>
                                 <th>Tabs</th>
-                                <th>Aktionen</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($allNotes as $note): ?>
                                 <tr>
+                                    <input type="hidden" name="note_ids[]" value="<?php echo (int)$note['id']; ?>">
                                     <td><?php echo (int)$note['id']; ?></td>
-                                    <td><?php echo htmlspecialchars($note['title']); ?></td>
+                                    <td><input type="text" class="form-control form-control-sm" name="note_names[<?php echo (int)$note['id']; ?>]" value="<?php echo htmlspecialchars($note['title']); ?>"></td>
                                     <td>
                                         <div class="d-flex gap-2 flex-wrap align-items-center">
                                             <?php foreach ($tabs as $tab): ?>
                                                 <?php
                                                 $assignedNoteTabs = $noteTabMap[(int)$note['id']] ?? [];
                                                 $isChecked        = in_array((int)$tab['id'], $assignedNoteTabs, true);
+                                                $isDefault        = $tab['slug'] === 'alle';
                                                 ?>
                                                 <label class="form-check form-check-inline">
-                                                    <input class="form-check-input" type="checkbox" disabled <?php echo $isChecked ? 'checked' : ''; ?>>
+                                                    <input class="form-check-input" type="checkbox"
+                                                           name="note_tabs[<?php echo (int)$note['id']; ?>][]"
+                                                           value="<?php echo (int)$tab['id']; ?>"
+                                                           <?php echo $isChecked ? 'checked' : ''; ?>
+                                                           <?php echo $isDefault ? 'disabled' : ''; ?>>
                                                     <span class="form-check-label"><?php echo htmlspecialchars($tab['name']); ?></span>
                                                 </label>
                                             <?php endforeach; ?>
@@ -439,10 +546,11 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
                                 </tr>
                             <?php endforeach; ?>
                             <?php if (empty($allNotes)): ?>
-                                <tr><td colspan="4" class="text-muted">Noch keine Notes vorhanden.</td></tr>
+                                <tr><td colspan="4" class="text-muted">No notes yet.</td></tr>
                             <?php endif; ?>
                         </tbody>
                     </table>
+                    </form>
                 </div>
             </div>
         </div>
@@ -475,10 +583,11 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
     <script src="assets/src/bootstrap.bundle.min.js"></script>
     <script src="assets/script.js?v1.3"></script>
     <script>
-    // Typ-Umschalter: Favorites Kategorie <-> Note
+    // Type switcher: Favorites Category <-> Note
     document.querySelectorAll('input[name="item_type"]').forEach(radio => {
         radio.addEventListener('change', () => {
             const isNote = document.getElementById('type_note').checked;
+            document.getElementById('cat-tab-section').style.display   = isNote ? 'none' : '';
             document.getElementById('note-tab-section').style.display  = isNote ? '' : 'none';
             document.getElementById('btn-add-category').style.display  = isNote ? 'none' : '';
             document.getElementById('btn-add-note').style.display      = isNote ? '' : 'none';

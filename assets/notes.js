@@ -1,19 +1,19 @@
 /**
- * notes.js – Note-Kacheln:
- *   - Free-Canvas-Layout für Desktop (>=992px, kein "Alle"-Tab) – View + Edit
- *   - Markdown-Rendering im View-Modus
- *   - Live-Speichern von Inhalt (Edit-Modus, debounced)
- *   - Eigener Resize-Handle für Note-Kacheln (Edit-Modus, Free Canvas)
- *   - Delete-Button (Edit-Modus)
+ * notes.js – Note tiles:
+ *   - Free-Canvas layout for desktop (>=992px, not "Alle" tab) – View + Edit mode
+ *   - Markdown rendering in view mode
+ *   - Live-save content (edit mode, debounced)
+ *   - Custom resize handle for note tiles (edit mode, free canvas)
+ *   - Delete button (edit mode)
  */
 document.addEventListener('DOMContentLoaded', () => {
 
-    // Markdown-Rendering für View-Modus
+    // Markdown rendering for view mode
     document.querySelectorAll('.note-view[data-raw]').forEach(el => {
         el.innerHTML = renderMarkdown(el.dataset.raw);
     });
 
-    // Edit-Modus: Live-Speichern (debounced)
+    // Edit mode: live-save (debounced)
     const timers = {};
     document.querySelectorAll('.note-edit-area').forEach(textarea => {
         textarea.addEventListener('input', () => {
@@ -24,15 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
     document.querySelectorAll('.note-title-input').forEach(input => {
-        input.addEventListener('input', () => {
-            const tile = input.closest('.note-tile');
-            const id   = tile.dataset.noteId;
-            clearTimeout(timers['c_' + id]);
-            timers['c_' + id] = setTimeout(() => saveNoteContent(tile), 800);
-        });
-    });
-
-    // Edit-Modus: Note löschen (sofort, kein Reload)
+    // Edit mode: delete note (instant, no reload)
     document.querySelectorAll('.delete-note').forEach(btn => {
         btn.addEventListener('click', () => {
             const tile = btn.closest('.note-tile');
@@ -44,11 +36,12 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .then(r => r.json())
             .then(data => { if (data.ok) tile.remove(); })
-            .catch(err => console.error('Fehler beim Löschen der Note:', err));
+            .catch(err => console.error('Error deleting note:', err));
         });
     });
 
     // Free Canvas Layout – View-Modus UND Edit-Modus (Desktop >=992px, kein Alle-Tab)
+        // Free Canvas layout – view mode AND edit mode (desktop >=992px, not Alle tab)
     const container = document.getElementById('categories');
     if (!container) return;
 
@@ -61,7 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Positionierungslogik für den Free Canvas
+// Positioning logic for the free canvas
 function initFreeCanvasLayout(container, tabId, isEdit) {
     if (isEdit) {
         container.querySelectorAll('[draggable]').forEach(el => el.removeAttribute('draggable'));
@@ -71,7 +64,7 @@ function initFreeCanvasLayout(container, tabId, isEdit) {
 
     const items = Array.from(container.querySelectorAll('.category, .note-tile'));
 
-    // Note-Kacheln: gespeicherte Grösse anwenden
+    // Note tiles: apply saved size
     items.forEach(function(item) {
         if (item.classList.contains('note-tile')) {
             item.style.width  = (parseInt(item.dataset.width)  || 360) + 'px';
@@ -110,7 +103,7 @@ function initFreeCanvasLayout(container, tabId, isEdit) {
 
     updateCanvasHeight(container);
 
-    // Resize-Handles nur im Edit-Modus hinzufügen
+    // Add resize handles in edit mode only
     if (isEdit) {
         items.forEach(function(item) {
             if (item.classList.contains('note-tile')) {
@@ -120,7 +113,7 @@ function initFreeCanvasLayout(container, tabId, isEdit) {
     }
 }
 
-// Canvas-Mindesthöhe nachführen (global, auch von sort.js genutzt)
+// Update canvas min-height (global, also used by sort.js)
 window.updateCanvasHeight = function(container) {
     var maxBottom = 600;
     container.querySelectorAll('.category, .note-tile').forEach(function(item) {
@@ -132,7 +125,7 @@ window.updateCanvasHeight = function(container) {
 
 function updateCanvasHeight(c) { window.updateCanvasHeight(c); }
 
-// Eigener Resize-Handle für Note-Kacheln
+// Custom resize handle for note tiles
 function addResizeHandle(tile, tabId, container) {
     var handle = document.createElement('div');
     handle.className = 'note-resize-handle';
@@ -168,7 +161,8 @@ function addResizeHandle(tile, tabId, container) {
                 body: 'action=update_position&id=' + encodeURIComponent(id) +
                       '&tab_id=' + encodeURIComponent(tid) +
                       '&width=' + w + '&height=' + h
-            }).catch(function(err) { console.error('Fehler beim Speichern der Note-Grösse:', err); });
+            }).catch(function(err) { console.error('Error saving note size:', err); });
+            }).catch(function(err) { console.error('Error saving note size:', err); });
         }
 
         document.addEventListener('mousemove', onMove);
@@ -176,22 +170,18 @@ function addResizeHandle(tile, tabId, container) {
     });
 }
 
-// Note-Inhalt per AJAX speichern
+// Save note content via AJAX
 function saveNoteContent(tile) {
-    var id      = tile.dataset.noteId;
-    var titleEl = tile.querySelector('.note-title-input');
-    var bodyEl  = tile.querySelector('.note-edit-area');
-    if (!titleEl || !bodyEl) return;
-    var title = titleEl.value.trim();
-    if (!title) return;
+    var id     = tile.dataset.noteId;
+    var bodyEl = tile.querySelector('.note-edit-area');
+    if (!bodyEl) return;
     fetch('notes.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'action=update_content' +
               '&id=' + encodeURIComponent(id) +
-              '&title=' + encodeURIComponent(title) +
               '&content=' + encodeURIComponent(bodyEl.value)
-    }).catch(function(err) { console.error('Fehler beim Speichern der Note:', err); });
+    }).catch(function(err) { console.error('Error saving note:', err); });
 }
 
 // Einfacher Markdown > HTML Renderer (XSS-sicher)

@@ -412,6 +412,7 @@ body.edit-mode .free-canvas .note-resize-handle {
 }
 
 /* ---- Note-Titel ---- */
+/* ---- Note title (always visible) ---- */
 .note-header-title {
     font-size: 1rem;
     margin: 0;
@@ -420,24 +421,6 @@ body.edit-mode .free-canvas .note-resize-handle {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-}
-
-.note-title-input {
-    flex: 1;
-    background: transparent;
-    border: none;
-    border-bottom: 1px solid #495564;
-    color: #f0f2f5;
-    font-size: 1rem;
-    font-weight: 500;
-    padding: 0 4px;
-    outline: none;
-    min-width: 0;
-}
-
-.note-title-input:focus {
-    border-bottom-color: #5f7ea1;
-    background-color: rgba(95, 126, 161, 0.08);
 }
 
 /* ---- Textarea (Edit-Modus) ---- */
@@ -518,22 +501,16 @@ body.edit-mode .free-canvas .note-resize-handle {
 .note-view hr      { border-color: #495564; margin: 0.5em 0; }
 
 /* ---- View vs. Edit-Sichtbarkeit ---- */
-/* Standard: View-Modus – Textarea verstecken */
+/* ---- View vs. Edit visibility ---- */
+/* Default: view mode – hide textarea and delete button */
 .note-edit-area,
-.note-title-input,
 .delete-note {
     display: none;
 }
 
-/* Edit-Modus: body bekommt Klasse edit-mode */
-body.edit-mode .note-edit-area,
-body.edit-mode .note-title-input,
-body.edit-mode .delete-note {
+/* Edit mode: body gets class edit-mode */
+body.edit-mode .note-edit-area {
     display: block;
-}
-
-body.edit-mode .note-header-title {
-    display: none;
 }
 
 body.edit-mode .delete-note {

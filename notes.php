@@ -17,27 +17,26 @@ $action = $_POST['action'] ?? '';
 switch ($action) {
 
     // ----------------------------------------------------------------
-    // Live-Speichern von Titel + Inhalt einer Note
+    // Live-save note content
     // ----------------------------------------------------------------
     case 'update_content': {
         $id      = (int)($_POST['id'] ?? 0);
-        $title   = trim($_POST['title'] ?? '');
         $content = $_POST['content'] ?? '';
 
-        if ($id <= 0 || $title === '') {
+        if ($id <= 0) {
             http_response_code(400);
             echo json_encode(['error' => 'Invalid input']);
             exit;
         }
 
-        $stmt = $pdo->prepare('UPDATE notes SET title = ?, content = ? WHERE id = ? AND user_id = ?');
-        $stmt->execute([$title, $content, $id, $userId]);
+        $stmt = $pdo->prepare('UPDATE notes SET content = ? WHERE id = ? AND user_id = ?');
+        $stmt->execute([$content, $id, $userId]);
         echo json_encode(['ok' => true]);
         break;
     }
 
     // ----------------------------------------------------------------
-    // Freie Position (x/y) + Größe (width/height) einer Note speichern
+    // Save free position (x/y) + size (width/height) of a note
     // ----------------------------------------------------------------
     case 'update_position': {
         $id    = (int)($_POST['id'] ?? 0);
@@ -53,7 +52,7 @@ switch ($action) {
             exit;
         }
 
-        // Eigentümer prüfen
+        // Verify ownership
         $stmt = $pdo->prepare('SELECT 1 FROM notes WHERE id = ? AND user_id = ?');
         $stmt->execute([$id, $userId]);
         if (!$stmt->fetchColumn()) {
@@ -91,7 +90,7 @@ switch ($action) {
     }
 
     // ----------------------------------------------------------------
-    // Freie Position einer Favoriten-Kategorie speichern
+    // Save free position of a category
     // ----------------------------------------------------------------
     case 'update_cat_position': {
         $catId = (int)($_POST['cat_id'] ?? 0);
@@ -130,7 +129,7 @@ switch ($action) {
     }
 
     // ----------------------------------------------------------------
-    // Grid-Reihenfolge mehrerer Notes speichern (für Mobile-Sort)
+    // Save grid order for multiple notes (mobile sort)
     // Body: JSON-Array [{id, tab_id, position}, ...]
     // ----------------------------------------------------------------
     case 'update_grid_positions': {
@@ -161,7 +160,7 @@ switch ($action) {
     }
 
     // ----------------------------------------------------------------
-    // Note löschen
+    // Delete note
     // ----------------------------------------------------------------
     case 'delete': {
         $id = (int)($_POST['id'] ?? 0);
