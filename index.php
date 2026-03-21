@@ -174,11 +174,13 @@ if ($activeTabSlug === 'alle') {
         <?php if ($mode === 'edit'): ?>
             <div class="w-100 px-3 mb-4">
                 <ul class="nav nav-tabs">
+                    <?php if ($activeTabSlug !== 'alle'): ?>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="index.php?mode=edit&tab=<?php echo urlencode($activeTabSlug); ?>">Edit</a>
+                        </li>
+                    <?php endif; ?>
                     <li class="nav-item">
-                        <a class="nav-link active" href="index.php?mode=edit&tab=<?php echo urlencode($activeTabSlug); ?>">Edit</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="categories.php?tab=<?php echo urlencode($activeTabSlug); ?>">Categories</a>
+                        <a class="nav-link <?php echo $activeTabSlug === 'alle' ? 'active' : ''; ?>" href="categories.php?tab=<?php echo urlencode($activeTabSlug); ?>">Categories</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="tabs.php?tab=<?php echo urlencode($activeTabSlug); ?>">Tabs</a>
