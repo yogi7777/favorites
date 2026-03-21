@@ -210,6 +210,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <?php include 'navigation.php'; ?>
     <script src="assets/src/bootstrap.bundle.min.js"></script>
-    <script src="assets/script.js?v1.4"></script>
+    <script src="assets/script.js?v1.5"></script>
 </body>
 </html>

@@ -1,7 +1,11 @@
+:root {
+    --ui-zoom: 1;
+}
+
 body {
-    font-size: 14px;
+    font-size: calc(14px * var(--ui-zoom));
     padding-top: 0;
-    padding-bottom: 86px;
+    padding-bottom: 124px;
 }
 
 .top-bar {
@@ -28,11 +32,12 @@ body {
 .top-tab-link {
     border: 1px solid #495564;
     color: #d6dde8;
-    min-height: 36px;
+    min-height: calc(36px * var(--ui-zoom));
     display: flex;
     align-items: center;
     gap: 6px;
     white-space: nowrap;
+    font-size: calc(0.95rem * var(--ui-zoom));
 }
 
 .top-tab-link.active {
@@ -79,13 +84,13 @@ body {
 .card-header {
     background-color: #2b2d2f;
     color: #fff;
-    padding-top: 15px;
-    font-size: 1.1rem;
+    padding-top: calc(15px * var(--ui-zoom));
+    font-size: calc(1.1rem * var(--ui-zoom));
     text-align: center;
 }
 .category-card .card-body {
     flex-grow: 1;
-    padding: 5px 5px 10px 10px;
+    padding: calc(5px * var(--ui-zoom)) calc(5px * var(--ui-zoom)) calc(10px * var(--ui-zoom)) calc(10px * var(--ui-zoom));
 }
 
 .bottom-nav {
@@ -96,16 +101,54 @@ body {
     right: 0;
     bottom: 0;
     z-index: 1040;
-    min-height: 60px;
+    min-height: 96px;
 }
 
 .bottom-nav-list {
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: 8px;
 }
 
 .bottom-nav-btn {
     min-width: 78px;
     text-align: center;
+}
+
+.bottom-zoom-item {
+    width: min(420px, 92vw);
+}
+
+.bottom-zoom-control {
+    border: 1px solid #495564;
+    border-radius: 8px;
+    padding: 8px 10px;
+    background: #2a3138;
+}
+
+.bottom-zoom-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.bottom-zoom-label,
+.bottom-zoom-value {
+    font-size: 0.85rem;
+    color: #d6dde8;
+    line-height: 1;
+}
+
+.bottom-zoom-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#uiZoomRange {
+    margin: 0;
 }
 
 .bottom-nav .nav-link.btn:hover {
@@ -138,20 +181,20 @@ body {
 }
 
 .favorite {
-    margin-top: 10px;
+    margin-top: calc(10px * var(--ui-zoom));
     display: flex;
     align-items: flex-start;
 }
 
 .favorite img {
-    width: 24px;
-    height: 24px;
-    margin-right: 10px;
+    width: calc(24px * var(--ui-zoom));
+    height: calc(24px * var(--ui-zoom));
+    margin-right: calc(10px * var(--ui-zoom));
     object-fit: contain;
 }
 
 .favorite a {
-    font-size: 1.0rem;
+    font-size: calc(1rem * var(--ui-zoom));
     min-width: 0;
     white-space: normal;
     overflow-wrap: anywhere;
@@ -216,7 +259,7 @@ footer a:active {
 
 @media (max-width: 767px) {
     body {
-        padding-bottom: 78px;
+        padding-bottom: 150px;
     }
 
     .top-bar {
@@ -260,7 +303,7 @@ footer a:active {
 
     .bottom-nav-list {
         width: 100%;
-        justify-content: space-around;
+        justify-content: center;
         gap: 4px;
     }
 
@@ -268,6 +311,15 @@ footer a:active {
         min-width: 58px;
         padding-left: 8px;
         padding-right: 8px;
+    }
+
+    .bottom-zoom-item {
+        width: 100%;
+        padding: 0 6px;
+    }
+
+    .bottom-zoom-control {
+        padding: 6px 8px;
     }
 }
 
@@ -332,7 +384,7 @@ body.edit-mode .free-canvas .note-tile:active {
 .note-tile {
     width: 100%;
     break-inside: avoid-column;
-    margin-bottom: 15px;
+    margin-bottom: calc(15px * var(--ui-zoom));
     transition: background-color 0.2s;
     box-sizing: border-box;
 }
@@ -346,7 +398,7 @@ body.edit-mode .free-canvas .note-tile:active {
 
 /* Kategorie-Kachel: Standardbreite im Free Canvas */
 .free-canvas .category {
-    width: 240px;
+    width: calc(240px * var(--ui-zoom));
 }
 
 /* ---- Eigener Resize-Handle (JS fügt ihn an) ---- */
@@ -385,7 +437,7 @@ body.edit-mode .free-canvas .note-resize-handle {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 12px;
+    padding: calc(8px * var(--ui-zoom)) calc(12px * var(--ui-zoom));
     flex-shrink: 0;
     cursor: grab;
     user-select: none;
@@ -393,7 +445,7 @@ body.edit-mode .free-canvas .note-resize-handle {
 
 .note-card .card-body {
     flex-grow: 1;
-    padding: 8px 10px;
+    padding: calc(8px * var(--ui-zoom)) calc(10px * var(--ui-zoom));
     overflow: hidden;
     display: flex;
     flex-direction: column;

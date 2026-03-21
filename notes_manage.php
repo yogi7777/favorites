@@ -309,7 +309,7 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
 
     <?php include 'navigation.php'; ?>
     <script src="assets/src/bootstrap.bundle.min.js"></script>
-    <script src="assets/script.js?v1.4"></script>
+    <script src="assets/script.js?v1.5"></script>
     <script>
         (function () {
             const form = document.getElementById('add-note-form');

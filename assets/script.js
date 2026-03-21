@@ -1,4 +1,54 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const uiZoomStorageKey = 'favorites-ui-zoom';
+    const uiZoomDefault = 100;
+    const uiZoomMin = 70;
+    const uiZoomMax = 150;
+    const uiZoomStep = 5;
+
+    function normalizeUiZoom(value) {
+        const numeric = Number(value);
+        if (!Number.isFinite(numeric)) return uiZoomDefault;
+        const clamped = Math.min(uiZoomMax, Math.max(uiZoomMin, numeric));
+        return Math.round(clamped / uiZoomStep) * uiZoomStep;
+    }
+
+    function applyUiZoom(value) {
+        const zoom = normalizeUiZoom(value);
+        document.documentElement.style.setProperty('--ui-zoom', (zoom / 100).toFixed(2));
+        return zoom;
+    }
+
+    const zoomRange = document.getElementById('uiZoomRange');
+    const zoomValue = document.getElementById('uiZoomValue');
+    const zoomReset = document.getElementById('uiZoomReset');
+    const storedZoom = normalizeUiZoom(localStorage.getItem(uiZoomStorageKey));
+    const initialZoom = applyUiZoom(storedZoom);
+
+    if (zoomRange) {
+        zoomRange.value = String(initialZoom);
+    }
+
+    if (zoomValue) {
+        zoomValue.textContent = `${initialZoom}%`;
+    }
+
+    if (zoomRange) {
+        zoomRange.addEventListener('input', () => {
+            const zoom = applyUiZoom(zoomRange.value);
+            localStorage.setItem(uiZoomStorageKey, String(zoom));
+            if (zoomValue) zoomValue.textContent = `${zoom}%`;
+        });
+    }
+
+    if (zoomReset) {
+        zoomReset.addEventListener('click', () => {
+            const zoom = applyUiZoom(uiZoomDefault);
+            localStorage.setItem(uiZoomStorageKey, String(zoom));
+            if (zoomRange) zoomRange.value = String(zoom);
+            if (zoomValue) zoomValue.textContent = `${zoom}%`;
+        });
+    }
+
     const favoriteModal = document.getElementById('favoriteModal');
     const favoriteForm = document.getElementById('favoriteForm');
     const editModal = document.getElementById('editFavoriteModal');

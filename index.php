@@ -358,7 +358,7 @@ if ($activeTabSlug === 'alle') {
         window.noteSearchData = <?= json_encode($searchNotes, JSON_HEX_TAG | JSON_HEX_AMP) ?>;
     </script>
     <script src="assets/src/bootstrap.bundle.min.js"></script>
-    <script src="assets/script.js?v1.4"></script>
+    <script src="assets/script.js?v1.5"></script>
     <script src="assets/notes.js?v1.5"></script>
     <?php if ($mode === 'edit'): ?>
         <script src="assets/sort.js?v1.6"></script>

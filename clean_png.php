@@ -83,5 +83,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
     </div>
 
     <script src="assets/src/bootstrap.bundle.min.js"></script>
+    <script src="assets/script.js?v1.5"></script>
 </body>
 </html>

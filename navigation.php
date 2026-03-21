@@ -110,6 +110,28 @@ $currentTab = $_GET['tab'] ?? 'alle';
                     </a>
                 </li>
             <?php endif; ?>
+
+            <li class="nav-item bottom-zoom-item">
+                <div class="bottom-zoom-control" title="UI Zoom (nur auf diesem Gerät)">
+                    <div class="bottom-zoom-label-row">
+                        <label for="uiZoomRange" class="bottom-zoom-label">Zoom</label>
+                        <span id="uiZoomValue" class="bottom-zoom-value">100%</span>
+                    </div>
+                    <div class="bottom-zoom-row">
+                        <input
+                            type="range"
+                            id="uiZoomRange"
+                            class="form-range"
+                            min="70"
+                            max="150"
+                            step="5"
+                            value="100"
+                            aria-label="UI Zoom"
+                        >
+                        <button type="button" id="uiZoomReset" class="btn btn-sm btn-outline-light">Reset</button>
+                    </div>
+                </div>
+            </li>
         </ul>
     </div>
 </nav>
