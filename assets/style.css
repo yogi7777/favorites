@@ -566,7 +566,7 @@ body.edit-mode .free-canvas .note-resize-handle {
     padding: 1px 5px;
     border-radius: 3px;
     font-size: 0.85em;
-    font-family: 'Courier New', monospace;
+    font-family: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', 'SFMono-Regular', 'Consolas', 'Liberation Mono', monospace;
 }
 
 .note-view pre {
