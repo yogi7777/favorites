@@ -155,24 +155,36 @@ function downloadFavicon($url, $id) {
         return null;
     }
     
-    $favicon_url = "https://www.google.com/s2/favicons?domain=" . urlencode($host);
-    $ch = curl_init($favicon_url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 5);
-    $favicon_data = curl_exec($ch);
-    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
+    $favicon_url = "https://www.google.com/s2/favicons?domain=" . urlencode($host) . "&sz=256";
+    
+    // Versuche mit curl zu downloaden (wenn verfügbar)
+    if (function_exists('curl_init')) {
+        $ch = curl_init($favicon_url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0');
+        $favicon_data = curl_exec($ch);
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+    } else {
+        // Fallback auf file_get_contents wenn curl nicht verfügbar
+        $favicon_data = @file_get_contents($favicon_url);
+        $http_code = $favicon_data !== false ? 200 : 0;
+    }
 
-    if ($favicon_data && $http_code === 200) {
+    if ($favicon_data && strlen($favicon_data) > 100 && in_array($http_code, [0, 200], true)) {
         // Stelle sicher, dass das Favicon-Verzeichnis existiert
         if (!file_exists('favicons')) {
             mkdir('favicons', 0755, true);
         }
         
         $new_favicon_path = "favicons/favicon_$id.png";
-        file_put_contents($new_favicon_path, $favicon_data);
-        return $new_favicon_path;
+        $bytes_written = file_put_contents($new_favicon_path, $favicon_data);
+        if ($bytes_written !== false && $bytes_written > 0) {
+            return $new_favicon_path;
+        }
     }
     
     return null;

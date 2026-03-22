@@ -399,9 +399,10 @@ $devices = getTrustedDevices($user_id);
             if (!form || !button || !spinner || !label || !status) return;
 
             form.addEventListener('submit', function (event) {
+                event.preventDefault();
+                
                 const ok = confirm('Alle Favicons jetzt neu laden? Das kann je nach Anzahl etwas dauern.');
                 if (!ok) {
-                    event.preventDefault();
                     return;
                 }
 
@@ -409,6 +410,26 @@ $devices = getTrustedDevices($user_id);
                 spinner.classList.remove('d-none');
                 status.classList.remove('d-none');
                 label.textContent = 'Aktualisierung läuft...';
+                
+                // Sende das Formular mit fetch (AJAX)
+                const formData = new FormData(form);
+                fetch(form.action || window.location.pathname, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.text())
+                .then(() => {
+                    // Nach erfolgreichem Submit die Seite neuladen
+                    window.location.reload();
+                })
+                .catch(error => {
+                    console.error('Fehler beim Aktualisieren der Favicons:', error);
+                    button.disabled = false;
+                    spinner.classList.add('d-none');
+                    status.classList.add('d-none');
+                    label.textContent = 'Alle Favicons aktualisieren';
+                    alert('Fehler beim Aktualisieren der Favicons. Bitte versuchen Sie es später erneut.');
+                });
             });
         })();
     </script>
