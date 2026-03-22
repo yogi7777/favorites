@@ -114,6 +114,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             echo $htmlData;
             exit;
         }
+        // Favicons ohne Import aktualisieren
+        elseif (isset($_POST['refresh_favicons'])) {
+            @set_time_limit(300);
+            $result = refreshAllUserFavicons($user_id, $pdo);
+            if (!empty($result['success'])) {
+                $stats = $result['stats'] ?? ['total' => 0, 'updated' => 0, 'failed' => 0];
+                $message = $result['message']
+                    . ' Gesamt: ' . (int)$stats['total']
+                    . ', aktualisiert: ' . (int)$stats['updated']
+                    . ', fehlgeschlagen: ' . (int)$stats['failed']
+                    . '.';
+            } else {
+                $message = $result['message'] ?? 'Fehler beim Aktualisieren der Favicons.';
+            }
+        }
         // Daten importieren
         elseif (isset($_FILES['import_file']) && $_FILES['import_file']['error'] == 0) {
             $fileTmpPath = $_FILES['import_file']['tmp_name'];
@@ -295,6 +310,33 @@ $devices = getTrustedDevices($user_id);
                     </div>
                 </div>
             </div>
+
+            <div class="col-md-12 mt-4">
+                <div class="card">
+                    <div class="card-header">
+                        Favicon Maintenance
+                    </div>
+                    <div class="card-body">
+                        <p>Aktualisiere alle Favicons deiner vorhandenen Favoriten ohne Import.</p>
+                        <form method="POST" id="refreshFaviconsForm">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                            <button type="submit" id="refreshFaviconsBtn" name="refresh_favicons" class="btn btn-outline-warning">
+                                <span id="refreshFaviconsSpinner" class="spinner-border spinner-border-sm me-2 d-none" role="status" aria-hidden="true"></span>
+                                <span id="refreshFaviconsBtnLabel">Alle Favicons aktualisieren</span>
+                            </button>
+                            <div id="refreshFaviconsStatus" class="mt-3 alert alert-secondary py-2 px-3 d-none" role="status" aria-live="polite">
+                                Favicon-Aktualisierung läuft. Bitte Seite nicht schließen.
+                            </div>
+                        </form>
+                        <div class="mt-3">
+                            <small class="text-muted">
+                                Diese Funktion lädt Favicons für alle vorhandenen Favoriten erneut vom Anbieter.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="row mx-auto col-md-12"><br /></div>
             <!-- Profil löschen -->
             <div class="col-md-12">
@@ -346,5 +388,29 @@ $devices = getTrustedDevices($user_id);
 
     <script src="assets/src/bootstrap.bundle.min.js"></script>
     <script src="assets/script.js?v1.5"></script>
+    <script>
+        (function () {
+            const form = document.getElementById('refreshFaviconsForm');
+            const button = document.getElementById('refreshFaviconsBtn');
+            const spinner = document.getElementById('refreshFaviconsSpinner');
+            const label = document.getElementById('refreshFaviconsBtnLabel');
+            const status = document.getElementById('refreshFaviconsStatus');
+
+            if (!form || !button || !spinner || !label || !status) return;
+
+            form.addEventListener('submit', function (event) {
+                const ok = confirm('Alle Favicons jetzt neu laden? Das kann je nach Anzahl etwas dauern.');
+                if (!ok) {
+                    event.preventDefault();
+                    return;
+                }
+
+                button.disabled = true;
+                spinner.classList.remove('d-none');
+                status.classList.remove('d-none');
+                label.textContent = 'Aktualisierung läuft...';
+            });
+        })();
+    </script>
 </body>
 </html>

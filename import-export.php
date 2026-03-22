@@ -179,6 +179,59 @@ function downloadFavicon($url, $id) {
 }
 
 /**
+ * Aktualisiert alle Favicons eines Benutzers ohne Import.
+ *
+ * @param int $user_id Die ID des Benutzers
+ * @param PDO $pdo PDO-Datenbankverbindung
+ * @return array Ergebnis mit Statistik
+ */
+function refreshAllUserFavicons($user_id, $pdo) {
+    $stmt = $pdo->prepare("SELECT id, url, favicon_url FROM favorites WHERE user_id = ?");
+    $stmt->execute([$user_id]);
+    $favorites = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $total = count($favorites);
+    $updated = 0;
+    $failed = 0;
+
+    if ($total === 0) {
+        return [
+            'success' => true,
+            'message' => 'Keine Favoriten vorhanden.',
+            'stats' => ['total' => 0, 'updated' => 0, 'failed' => 0]
+        ];
+    }
+
+    $updateStmt = $pdo->prepare("UPDATE favorites SET favicon_url = ? WHERE id = ? AND user_id = ?");
+
+    foreach ($favorites as $favorite) {
+        $favoriteId = (int)$favorite['id'];
+        $url = (string)($favorite['url'] ?? '');
+        if ($url === '') {
+            $failed++;
+            continue;
+        }
+
+        $newFavicon = downloadFavicon($url, $favoriteId);
+        if (!$newFavicon) {
+            $failed++;
+            continue;
+        }
+
+        if ($newFavicon !== ($favorite['favicon_url'] ?? '')) {
+            $updateStmt->execute([$newFavicon, $favoriteId, $user_id]);
+        }
+        $updated++;
+    }
+
+    return [
+        'success' => true,
+        'message' => 'Favicon-Aktualisierung abgeschlossen.',
+        'stats' => ['total' => $total, 'updated' => $updated, 'failed' => $failed]
+    ];
+}
+
+/**
  * Erzeugt einen eindeutigen Tab-Slug pro Benutzer.
  */
 function buildUniqueTabSlug($user_id, $slug, $pdo, $excludeTabId = null) {
