@@ -413,13 +413,20 @@ $devices = getTrustedDevices($user_id);
                 
                 // Sende das Formular mit fetch (AJAX)
                 const formData = new FormData(form);
+                // Button muss manuell hinzugefügt werden, da er nicht automatisch in FormData eingeschlossen wird
+                formData.append('refresh_favicons', 'on');
+                
+                console.log('Starte Favicon-Aktualisierung...');
                 fetch(form.action || window.location.pathname, {
                     method: 'POST',
                     body: formData
                 })
-                .then(response => response.text())
-                .then(() => {
-                    // Nach erfolgreichem Submit die Seite neuladen
+                .then(response => {
+                    console.log('Response Status:', response.status);
+                    return response.text();
+                })
+                .then(text => {
+                    console.log('Server Antwort erhalten, Seite wird neugeladen...');
                     window.location.reload();
                 })
                 .catch(error => {

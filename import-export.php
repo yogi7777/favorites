@@ -152,10 +152,13 @@ function exportBrowserBookmarks($user_id, $pdo) {
 function downloadFavicon($url, $id) {
     $host = parse_url($url, PHP_URL_HOST);
     if (!$host) {
+        error_log("Favicon Error ($id): Keine Host aus URL extrahiert: $url");
         return null;
     }
     
     $favicon_url = "https://www.google.com/s2/favicons?domain=" . urlencode($host) . "&sz=256";
+    $favicon_data = null;
+    $http_code = 0;
     
     // Versuche mit curl zu downloaden (wenn verfügbar)
     if (function_exists('curl_init')) {
@@ -165,29 +168,54 @@ function downloadFavicon($url, $id) {
         curl_setopt($ch, CURLOPT_TIMEOUT, 5);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0');
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
         $favicon_data = curl_exec($ch);
+        
+        if ($favicon_data === false) {
+            $curl_error = curl_error($ch);
+            error_log("Favicon Error ($id): Curl Fehler: $curl_error");
+        }
+        
         $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
     } else {
         // Fallback auf file_get_contents wenn curl nicht verfügbar
         $favicon_data = @file_get_contents($favicon_url);
-        $http_code = $favicon_data !== false ? 200 : 0;
+        if ($favicon_data === false) {
+            error_log("Favicon Error ($id): file_get_contents fehlgeschlagen für $favicon_url");
+        } else {
+            $http_code = 200;
+        }
     }
 
-    if ($favicon_data && strlen($favicon_data) > 100 && in_array($http_code, [0, 200], true)) {
-        // Stelle sicher, dass das Favicon-Verzeichnis existiert
-        if (!file_exists('favicons')) {
-            mkdir('favicons', 0755, true);
-        }
-        
-        $new_favicon_path = "favicons/favicon_$id.png";
-        $bytes_written = file_put_contents($new_favicon_path, $favicon_data);
-        if ($bytes_written !== false && $bytes_written > 0) {
-            return $new_favicon_path;
+    if (!$favicon_data || strlen($favicon_data) < 100) {
+        error_log("Favicon Error ($id): Keine gültigen Daten heruntergeladen. Size: " . (!$favicon_data ? 0 : strlen($favicon_data)) . " bytes");
+        return null;
+    }
+
+    // Stelle sicher, dass das Favicon-Verzeichnis existiert
+    if (!file_exists('favicons')) {
+        if (!mkdir('favicons', 0755, true)) {
+            error_log("Favicon Error ($id): Favicon-Verzeichnis konnte nicht erstellt werden");
+            return null;
         }
     }
     
-    return null;
+    $new_favicon_path = "favicons/favicon_$id.png";
+    $bytes_written = @file_put_contents($new_favicon_path, $favicon_data);
+    
+    if ($bytes_written === false) {
+        error_log("Favicon Error ($id): Datei konnte nicht geschrieben werden: $new_favicon_path");
+        return null;
+    }
+    
+    if ($bytes_written === 0) {
+        error_log("Favicon Error ($id): Keine Bytes geschrieben zu $new_favicon_path");
+        return null;
+    }
+    
+    error_log("Favicon Success ($id): $bytes_written bytes geschrieben zu $new_favicon_path");
+    return $new_favicon_path;
 }
 
 /**
@@ -198,6 +226,8 @@ function downloadFavicon($url, $id) {
  * @return array Ergebnis mit Statistik
  */
 function refreshAllUserFavicons($user_id, $pdo) {
+    error_log("=== Favicon-Refresh gestartet für Benutzer $user_id ===");
+    
     $stmt = $pdo->prepare("SELECT id, url, favicon_url FROM favorites WHERE user_id = ?");
     $stmt->execute([$user_id]);
     $favorites = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -206,7 +236,10 @@ function refreshAllUserFavicons($user_id, $pdo) {
     $updated = 0;
     $failed = 0;
 
+    error_log("Total Favorites gefunden: $total");
+
     if ($total === 0) {
+        error_log("Keine Favoriten vorhanden.");
         return [
             'success' => true,
             'message' => 'Keine Favoriten vorhanden.',
@@ -219,22 +252,31 @@ function refreshAllUserFavicons($user_id, $pdo) {
     foreach ($favorites as $favorite) {
         $favoriteId = (int)$favorite['id'];
         $url = (string)($favorite['url'] ?? '');
+        $oldFaviconUrl = $favorite['favicon_url'] ?? 'keine';
+        
         if ($url === '') {
+            error_log("Favorite $favoriteId: URL leer, übersprungen");
             $failed++;
             continue;
         }
 
+        error_log("Processing Favorite $favoriteId: $url");
         $newFavicon = downloadFavicon($url, $favoriteId);
+        
         if (!$newFavicon) {
+            error_log("Favorite $favoriteId: downloadFavicon() hat null zurückgegeben");
             $failed++;
             continue;
         }
 
         if ($newFavicon !== ($favorite['favicon_url'] ?? '')) {
+            error_log("Favorite $favoriteId: Updating von '$oldFaviconUrl' zu '$newFavicon'");
             $updateStmt->execute([$newFavicon, $favoriteId, $user_id]);
         }
         $updated++;
     }
+
+    error_log("=== Favicon-Refresh abgeschlossen: Total=$total, Updated=$updated, Failed=$failed ===");
 
     return [
         'success' => true,
