@@ -229,7 +229,7 @@ if ($activeTabSlug === 'alle') {
                                     <?php $favoritesInCategory = $favoritesByCategory[(int)$category['id']] ?? []; ?>
                                     <?php foreach ($favoritesInCategory as $favorite): ?>
                                         <div class="favorite" data-title="<?php echo htmlspecialchars($favorite['title']); ?>" <?php if ($mode === 'edit'): ?>data-id="<?php echo (int)$favorite['id']; ?>"<?php endif; ?>>
-                                            <img src="<?php echo htmlspecialchars($favorite['favicon_url']); ?>" alt="Favicon" class="favicon">
+                                            <img src="<?php echo htmlspecialchars(normalizeFaviconPath($favorite['favicon_url'])); ?>" alt="Favicon" class="favicon">
                                             <a href="<?php echo htmlspecialchars($favorite['url']); ?>" target="_blank" data-bs-toggle="tooltip" data-bs-placement="right" title="<?php echo htmlspecialchars($favorite['url']); ?>">
                                                 <?php echo htmlspecialchars($favorite['title']); ?>
                                             </a>

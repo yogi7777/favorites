@@ -215,7 +215,8 @@ function downloadFavicon($url, $id) {
     }
     
     error_log("Favicon Success ($id): $bytes_written bytes geschrieben zu $new_favicon_path");
-    return $new_favicon_path;
+    // Gib absoluten Pfad zurück, damit nginx Proxy funktioniert
+    return "/favicons/favicon_$id.png";
 }
 
 /**

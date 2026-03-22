@@ -91,3 +91,34 @@ function resolveActiveTab(array $tabs, string $requested): array {
 
     return [$activeTabSlug, $activeTab];
 }
+
+/**
+ * Normalisiert einen Favicon-Pfad auf einen absoluten Pfad
+ * Konvertiert sowohl relative als auch absolute Pfade zu absoluten
+ * 
+ * @param string $faviconUrl Der Favicon-URL oder -Pfad aus der Datenbank
+ * @return string Der normalisierte absolute Pfad (z.B. /favicons/favicon_123.png)
+ */
+function normalizeFaviconPath(string $faviconUrl): string {
+    if (empty($faviconUrl)) {
+        return '';
+    }
+
+    // Prüfe, ob es eine vollständige URL ist (http/https)
+    if (strpos($faviconUrl, 'http://') === 0 || strpos($faviconUrl, 'https://') === 0) {
+        return $faviconUrl;
+    }
+
+    // Prüfe, ob es bereits ein absoluter Pfad ist
+    if (strpos($faviconUrl, '/') === 0) {
+        return $faviconUrl;
+    }
+
+    // Konvertiere relative Pfade (favicons/favicon_123.png) zu absolut (/favicons/favicon_123.png)
+    if (strpos($faviconUrl, 'favicons/') === 0) {
+        return '/' . $faviconUrl;
+    }
+
+    // Fallback für andere Fälle
+    return '/' . $faviconUrl;
+}
