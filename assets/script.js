@@ -471,11 +471,17 @@ document.addEventListener('DOMContentLoaded', () => {
             previewEl.classList.add('d-none');
             return;
         }
-        imgEl.src = faviconUrl;
-        sourceEl.href = sourceUrl !== 'Google Favicon API' ? sourceUrl : '#';
-        sourceEl.textContent = sourceUrl;
+        // Externe URLs über Server-Proxy laden – verhindert Browser-Blockierung (Hotlink/CSP)
+        const isExternal = /^https?:\/\//i.test(faviconUrl);
+        imgEl.src = isExternal
+            ? 'get_favicon.php?img=' + encodeURIComponent(faviconUrl)
+            : faviconUrl;
+        imgEl.onerror = () => { previewEl.classList.add('d-none'); };
+        imgEl.onload  = () => { previewEl.classList.remove('d-none'); };
+        sourceEl.href = (sourceUrl && sourceUrl !== 'Google Favicon API') ? sourceUrl : '#';
+        sourceEl.textContent = sourceUrl || faviconUrl;
         previewEl.classList.remove('d-none');
-        if (hiddenInput) hiddenInput.value = faviconUrl;
+        if (hiddenInput) hiddenInput.value = faviconUrl; // Original-URL (nicht Proxy) speichern
     }
 
     // Visuelles Feedback für Dragover/Dragleave
