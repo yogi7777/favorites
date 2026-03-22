@@ -39,74 +39,84 @@ $baseUrl = $scheme . '://' . $host;
 $faviconUrl = '';
 $source = '';
 
-// Schritt 1: HTML der Seite laden und <link rel="icon"> parsen
-$ch = curl_init($url);
-curl_setopt_array($ch, [
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_FOLLOWLOCATION => true,
-    CURLOPT_USERAGENT      => 'Mozilla/5.0',
-    CURLOPT_TIMEOUT        => 5,
-    CURLOPT_SSL_VERIFYPEER => false,
-    CURLOPT_MAXREDIRS      => 5,
-]);
-$html = curl_exec($ch);
-curl_close($ch);
-
-if ($html) {
-    // Suche nach link-Tags in dieser Reihenfolge: apple-touch-icon, icon, shortcut icon
-    $patterns = [
-        // href kommt nach rel
-        '/<link[^>]+rel=["\']apple-touch-icon["\'][^>]+href=["\']([^"\']+)["\'][^>]*>/i',
-        '/<link[^>]+rel=["\']icon["\'][^>]+href=["\']([^"\']+)["\'][^>]*>/i',
-        '/<link[^>]+rel=["\']shortcut icon["\'][^>]+href=["\']([^"\']+)["\'][^>]*>/i',
-        // href kommt vor rel
-        '/<link[^>]+href=["\']([^"\']+)["\'][^>]+rel=["\']apple-touch-icon["\'][^>]*>/i',
-        '/<link[^>]+href=["\']([^"\']+)["\'][^>]+rel=["\']icon["\'][^>]*>/i',
-        '/<link[^>]+href=["\']([^"\']+)["\'][^>]+rel=["\']shortcut icon["\'][^>]*>/i',
-    ];
-
-    foreach ($patterns as $pattern) {
-        if (preg_match($pattern, $html, $match)) {
-            $found = trim($match[1]);
-            if ($found) {
-                // Relativen Pfad in absolute URL umwandeln
-                if (strpos($found, 'http://') === 0 || strpos($found, 'https://') === 0) {
-                    $faviconUrl = $found;
-                } elseif (strpos($found, '//') === 0) {
-                    $faviconUrl = $scheme . ':' . $found;
-                } elseif (strpos($found, '/') === 0) {
-                    $faviconUrl = $baseUrl . $found;
-                } else {
-                    $path = $parsed['path'] ?? '/';
-                    $dir = dirname($path);
-                    $faviconUrl = $baseUrl . rtrim($dir, '/') . '/' . $found;
-                }
-                $source = $faviconUrl;
-                break;
-            }
-        }
-    }
-}
-
-// Schritt 2: Fallback auf /favicon.ico
-if (!$faviconUrl) {
-    $testUrl = $baseUrl . '/favicon.ico';
-    $ch = curl_init($testUrl);
+// Hilfsfunktion: prüft ob eine URL eine gültige Bild-Antwort liefert
+function checkFaviconUrl(string $url): bool {
+    $ch = curl_init($url);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_FOLLOWLOCATION => true,
         CURLOPT_USERAGENT      => 'Mozilla/5.0',
         CURLOPT_TIMEOUT        => 3,
         CURLOPT_SSL_VERIFYPEER => false,
-        CURLOPT_NOBODY         => true,
+        CURLOPT_NOBODY         => true, // HEAD request
     ]);
     curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $httpCode    = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $contentType = (string)curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+    curl_close($ch);
+    return $httpCode === 200 && (
+        str_contains($contentType, 'image/') ||
+        str_contains($contentType, 'application/octet-stream') ||
+        $contentType === '' // manche Server schicken keinen Content-Type bei HEAD
+    );
+}
+
+// Schritt 1: /favicon.ico direkt prüfen (günstigste Option)
+$testUrl = $baseUrl . '/favicon.ico';
+if (checkFaviconUrl($testUrl)) {
+    $faviconUrl = $testUrl;
+    $source = $testUrl;
+}
+
+// Schritt 2: HTML der Seite laden und <link rel="icon"> parsen
+if (!$faviconUrl) {
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_USERAGENT      => 'Mozilla/5.0',
+        CURLOPT_TIMEOUT        => 5,
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_MAXREDIRS      => 5,
+    ]);
+    $html = curl_exec($ch);
     curl_close($ch);
 
-    if ($httpCode === 200) {
-        $faviconUrl = $testUrl;
-        $source = $testUrl;
+    if ($html) {
+        $patterns = [
+            '/<link[^>]+rel=["\']apple-touch-icon["\'][^>]+href=["\']([^"\']+)["\'][^>]*>/i',
+            '/<link[^>]+rel=["\']icon["\'][^>]+href=["\']([^"\']+)["\'][^>]*>/i',
+            '/<link[^>]+rel=["\']shortcut icon["\'][^>]+href=["\']([^"\']+)["\'][^>]*>/i',
+            '/<link[^>]+href=["\']([^"\']+)["\'][^>]+rel=["\']apple-touch-icon["\'][^>]*>/i',
+            '/<link[^>]+href=["\']([^"\']+)["\'][^>]+rel=["\']icon["\'][^>]*>/i',
+            '/<link[^>]+href=["\']([^"\']+)["\'][^>]+rel=["\']shortcut icon["\'][^>]*>/i',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $html, $match)) {
+                $found = trim($match[1]);
+                if (!$found) continue;
+
+                // Relativen Pfad in absolute URL umwandeln
+                if (strpos($found, 'http://') === 0 || strpos($found, 'https://') === 0) {
+                    $candidate = $found;
+                } elseif (strpos($found, '//') === 0) {
+                    $candidate = $scheme . ':' . $found;
+                } elseif (strpos($found, '/') === 0) {
+                    $candidate = $baseUrl . $found;
+                } else {
+                    $dir = dirname($parsed['path'] ?? '/');
+                    $candidate = $baseUrl . rtrim($dir, '/') . '/' . $found;
+                }
+
+                // Prüfen, ob die URL wirklich ein Bild liefert
+                if (checkFaviconUrl($candidate)) {
+                    $faviconUrl = $candidate;
+                    $source = $candidate;
+                    break;
+                }
+            }
+        }
     }
 }
 

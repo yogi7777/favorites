@@ -51,54 +51,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([$id, $user_id]);
         $old_favicon = $stmt->fetchColumn();
 
-        // Beste Favicon-Quelle bestimmen: custom > detected > Google API
-        if ($favicon_url && isSafeFaviconUrl($favicon_url)) {
-            $favicon_source = $favicon_url;
-        } elseif ($detected_favicon_url && isSafeFaviconUrl($detected_favicon_url)) {
-            $favicon_source = $detected_favicon_url;
-        } else {
-            $host = parse_url($url, PHP_URL_HOST);
-            $favicon_source = $host
-                ? 'https://www.google.com/s2/favicons?domain=' . urlencode($host) . '&sz=256'
-                : null;
-        }
-
-        $favicon_stored = $old_favicon; // Fallback: altes Favicon behalten
+        $favicon_stored = $old_favicon; // Standardmässig altes Favicon behalten
         $new_favicon_path = null;
 
-        if ($favicon_source) {
-            $ch = curl_init($favicon_source);
-            curl_setopt_array($ch, [
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_TIMEOUT        => 5,
-                CURLOPT_SSL_VERIFYPEER => false,
-                CURLOPT_USERAGENT      => 'Mozilla/5.0',
-            ]);
-            $favicon_data = curl_exec($ch);
-            $content_type = (string)curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
-            $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
+        // Favicon nur neu laden wenn:
+        // (a) Benutzer eine eigene URL angegeben hat, ODER
+        // (b) Eine neue Remote-URL erkannt wurde (URL wurde im Modal geändert)
+        // NICHT neu laden wenn detected_favicon_url ein lokaler Pfad ist (URL unverändert)
+        $isLocalPath = str_starts_with((string)$detected_favicon_url, '/');
+        $needsDownload = false;
+        $favicon_sources = [];
 
-            if ($favicon_data && strlen($favicon_data) > 100) {
+        if ($favicon_url && isSafeFaviconUrl($favicon_url)) {
+            // Benutzer hat explizit eine Custom-URL eingegeben
+            $favicon_sources[] = $favicon_url;
+            $needsDownload = true;
+        } elseif (!$isLocalPath && $detected_favicon_url && isSafeFaviconUrl($detected_favicon_url)) {
+            // URL wurde geändert → neue Remote-URL erkannt
+            $favicon_sources[] = $detected_favicon_url;
+            $needsDownload = true;
+        }
+        // sonst: URL unverändert → vorhandenes lokales Favicon behalten
+
+        if ($needsDownload) {
+            // Google API immer als letzter Fallback
+            $host = parse_url($url, PHP_URL_HOST);
+            if ($host) {
+                $favicon_sources[] = 'https://www.google.com/s2/favicons?domain=' . urlencode($host) . '&sz=256';
+            }
+
+            if (!file_exists('favicons')) mkdir('favicons', 0755, true);
+
+            foreach ($favicon_sources as $src) {
+                $ch = curl_init($src);
+                curl_setopt_array($ch, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_FOLLOWLOCATION => true,
+                    CURLOPT_TIMEOUT        => 5,
+                    CURLOPT_SSL_VERIFYPEER => false,
+                    CURLOPT_USERAGENT      => 'Mozilla/5.0',
+                ]);
+                $favicon_data = curl_exec($ch);
+                $content_type = (string)curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+                curl_close($ch);
+
+                // Nur echte Bilder akzeptieren
+                if (!$favicon_data || strlen($favicon_data) < 100 || !str_contains($content_type, 'image/')) {
+                    error_log("edit_favorite: Download fehlgeschlagen oder kein Bild für ID $id, Quelle: $src (Content-Type: $content_type)");
+                    continue;
+                }
+
                 $ext = '.png';
                 if (str_contains($content_type, 'jpeg') || str_contains($content_type, 'jpg')) $ext = '.jpg';
                 elseif (str_contains($content_type, 'gif')) $ext = '.gif';
                 elseif (str_contains($content_type, 'svg')) $ext = '.svg';
 
-                if (!file_exists('favicons')) mkdir('favicons', 0755, true);
-
                 $local_path = "favicons/favicon_$id$ext";
                 if (@file_put_contents($local_path, $favicon_data) !== false) {
                     $new_favicon_path = $local_path;
-                    $favicon_stored = '/' . $local_path; // Absoluten Pfad in DB speichern
+                    $favicon_stored = '/' . $local_path;
                 }
-            } else {
-                error_log("Favicon-Download fehlgeschlagen für ID $id, Quelle: $favicon_source");
+                break; // Erfolg
             }
         }
 
-        // Alte Favicon-Datei löschen, wenn eine neue gespeichert wurde (anderen Namen)
+        // Alte Favicon-Datei löschen wenn eine neue gespeichert wurde und Name sich unterscheidet
         if ($new_favicon_path && $old_favicon) {
             $old_file = ltrim($old_favicon, '/');
             if ($old_file !== $new_favicon_path && file_exists($old_file)) {

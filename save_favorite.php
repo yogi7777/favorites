@@ -48,35 +48,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         mkdir('favicons', 0755, true);
     }
 
-    // Favicon herunterladen und lokal speichern
-    $ch = curl_init($favicon_source);
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_TIMEOUT        => 5,
-        CURLOPT_SSL_VERIFYPEER => false,
-        CURLOPT_USERAGENT      => 'Mozilla/5.0',
+    // Favicon herunterladen – versuche erkannte/custom URL, dann Google API als Fallback
+    $sources_to_try = array_filter([$favicon_source,
+        'https://www.google.com/s2/favicons?domain=' . urlencode(parse_url($url, PHP_URL_HOST)) . '&sz=256'
     ]);
-    $favicon_data = curl_exec($ch);
-    $content_type = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
-    curl_close($ch);
 
-    if ($favicon_data && strlen($favicon_data) > 100) {
-        $ext = '.png';
-        if (str_contains((string)$content_type, 'jpeg') || str_contains((string)$content_type, 'jpg')) {
-            $ext = '.jpg';
-        } elseif (str_contains((string)$content_type, 'gif')) {
-            $ext = '.gif';
-        } elseif (str_contains((string)$content_type, 'svg')) {
-            $ext = '.svg';
+    foreach ($sources_to_try as $src) {
+        $ch = curl_init($src);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_TIMEOUT        => 5,
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_USERAGENT      => 'Mozilla/5.0',
+        ]);
+        $favicon_data = curl_exec($ch);
+        $content_type = (string)curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+        curl_close($ch);
+
+        // Nur echte Bilder akzeptieren
+        if (!$favicon_data || strlen($favicon_data) < 100 || !str_contains($content_type, 'image/')) {
+            continue;
         }
 
+        $ext = '.png';
+        if (str_contains($content_type, 'jpeg') || str_contains($content_type, 'jpg')) $ext = '.jpg';
+        elseif (str_contains($content_type, 'gif')) $ext = '.gif';
+        elseif (str_contains($content_type, 'svg')) $ext = '.svg';
+
         $local_path = "favicons/favicon_$favorite_id$ext";
-        if (file_put_contents($local_path, $favicon_data) !== false) {
-            // Absoluten Pfad in DB speichern (/favicons/...)
+        if (@file_put_contents($local_path, $favicon_data) !== false) {
             $stmt = $pdo->prepare("UPDATE favorites SET favicon_url = ? WHERE id = ?");
             $stmt->execute(['/' . $local_path, $favorite_id]);
         }
+        break; // Erfolg – weiteres Versuchen unnötig
     }
 }
 ?>
