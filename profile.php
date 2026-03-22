@@ -119,11 +119,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             @set_time_limit(300);
             $result = refreshAllUserFavicons($user_id, $pdo);
             if (!empty($result['success'])) {
-                $stats = $result['stats'] ?? ['total' => 0, 'updated' => 0, 'failed' => 0];
+                $stats = $result['stats'] ?? ['total' => 0, 'updated' => 0, 'failed' => 0, 'cleaned' => 0];
                 $message = $result['message']
                     . ' Gesamt: ' . (int)$stats['total']
                     . ', aktualisiert: ' . (int)$stats['updated']
                     . ', fehlgeschlagen: ' . (int)$stats['failed']
+                    . ', verwaiste Dateien gelöscht: ' . (int)($stats['cleaned'] ?? 0)
                     . '.';
             } else {
                 $message = $result['message'] ?? 'Fehler beim Aktualisieren der Favicons.';

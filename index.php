@@ -297,13 +297,23 @@ if ($activeTabSlug === 'alle') {
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label for="favicon_url" class="form-label">Custom Favicon URL (optional)</label>
-                            <input type="url" class="form-control" id="favicon_url" placeholder="Leave blank for default">
-                        </div>
-                        <div class="mb-3">
                             <label for="url" class="form-label">URL</label>
                             <input type="url" class="form-control" id="url" name="url" required>
                         </div>
+                        <div id="faviconPreview" class="mb-3 d-none">
+                            <div class="d-flex align-items-center gap-2 px-3 py-2 border rounded bg-body-secondary">
+                                <img id="faviconPreviewImg" src="" alt="Favicon" style="width:16px;height:16px;flex-shrink:0;">
+                                <div class="overflow-hidden">
+                                    <div class="text-muted" style="font-size:0.75rem;">Erkanntes Favicon:</div>
+                                    <a id="faviconPreviewSource" href="#" target="_blank" class="text-truncate d-block" style="font-size:0.75rem;max-width:380px;"></a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="favicon_url" class="form-label">Custom Favicon URL <span class="text-muted fw-normal">(optional – überschreibt die erkannte)</span></label>
+                            <input type="url" class="form-control" id="favicon_url" placeholder="Leer lassen für automatisch">
+                        </div>
+                        <input type="hidden" id="detectedFaviconUrl" name="detected_favicon_url">
                     </form>
                 </div>
                 <div class="modal-footer">
@@ -339,10 +349,20 @@ if ($activeTabSlug === 'alle') {
                             <label for="edit_url" class="form-label">URL</label>
                             <input type="url" class="form-control" id="edit_url" name="url" required>
                         </div>
-                        <div class="mb-3">
-                            <label for="edit_favicon_url" class="form-label">Custom Favicon URL (optional)</label>
-                            <input type="url" class="form-control" id="edit_favicon_url" name="favicon_url" placeholder="Leave blank for default">
+                        <div id="editFaviconPreview" class="mb-3 d-none">
+                            <div class="d-flex align-items-center gap-2 px-3 py-2 border rounded bg-body-secondary">
+                                <img id="editFaviconPreviewImg" src="" alt="Favicon" style="width:16px;height:16px;flex-shrink:0;">
+                                <div class="overflow-hidden">
+                                    <div class="text-muted" style="font-size:0.75rem;">Erkanntes Favicon:</div>
+                                    <a id="editFaviconPreviewSource" href="#" target="_blank" class="text-truncate d-block" style="font-size:0.75rem;max-width:380px;"></a>
+                                </div>
+                            </div>
                         </div>
+                        <div class="mb-3">
+                            <label for="edit_favicon_url" class="form-label">Custom Favicon URL <span class="text-muted fw-normal">(optional – überschreibt die erkannte)</span></label>
+                            <input type="url" class="form-control" id="edit_favicon_url" name="favicon_url" placeholder="Leer lassen für automatisch">
+                        </div>
+                        <input type="hidden" id="editDetectedFaviconUrl" name="detected_favicon_url">
                         <input type="hidden" id="edit_id" name="id">
                     </form>
                     </div>
@@ -365,7 +385,7 @@ if ($activeTabSlug === 'alle') {
         window.noteSearchData = <?= json_encode($searchNotes, JSON_HEX_TAG | JSON_HEX_AMP) ?>;
     </script>
     <script src="assets/src/bootstrap.bundle.min.js"></script>
-    <script src="assets/script.js?v1.5"></script>
+    <script src="assets/script.js?v1.6"></script>
     <script src="assets/notes.js?v1.5"></script>
     <?php if ($mode === 'edit'): ?>
         <script src="assets/sort.js?v1.7"></script>

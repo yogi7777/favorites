@@ -77,6 +77,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 fetchTitle(url).then(title => {
                     document.getElementById('title').value = title || '';
                     modal.show();
+                    // Favicon-Preview laden
+                    const previewEl = document.getElementById('faviconPreview');
+                    const imgEl = document.getElementById('faviconPreviewImg');
+                    const sourceEl = document.getElementById('faviconPreviewSource');
+                    const hiddenFavicon = document.getElementById('detectedFaviconUrl');
+                    if (previewEl && imgEl && sourceEl) {
+                        fetchFavicon(url).then(data => {
+                            if (data && data.favicon) {
+                                showFaviconPreview(previewEl, imgEl, sourceEl, data.favicon, data.source, hiddenFavicon);
+                            }
+                        });
+                    }
                 }).catch(error => {
                     console.error('Fehler beim Abrufen des Titels:', error);
                     alert('Fehler beim Abrufen des Titels. Bitte überprüfen Sie die URL.');
@@ -84,6 +96,38 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     
+        // Favicon-Preview bei manuellem Tippen in URL-Feld
+        const urlFieldInModal = document.getElementById('url');
+        if (urlFieldInModal) {
+            let faviconDebounceTimer = null;
+            urlFieldInModal.addEventListener('input', () => {
+                clearTimeout(faviconDebounceTimer);
+                const val = urlFieldInModal.value.trim();
+                if (!val || !/^https?:\/\//i.test(val)) return;
+                faviconDebounceTimer = setTimeout(() => {
+                    const previewEl = document.getElementById('faviconPreview');
+                    const imgEl = document.getElementById('faviconPreviewImg');
+                    const sourceEl = document.getElementById('faviconPreviewSource');
+                    const hiddenFavicon = document.getElementById('detectedFaviconUrl');
+                    if (previewEl && imgEl && sourceEl) {
+                        fetchFavicon(val).then(data => {
+                            if (data && data.favicon) {
+                                showFaviconPreview(previewEl, imgEl, sourceEl, data.favicon, data.source, hiddenFavicon);
+                            }
+                        });
+                    }
+                }, 800);
+            });
+        }
+
+        // Felder beim Schließen des Modals zurücksetzen
+        favoriteModal.addEventListener('hidden.bs.modal', () => {
+            const hiddenFavicon = document.getElementById('detectedFaviconUrl');
+            const previewEl = document.getElementById('faviconPreview');
+            if (hiddenFavicon) hiddenFavicon.value = '';
+            if (previewEl) previewEl.classList.add('d-none');
+        });
+
         saveButton.addEventListener('click', () => {
             const titleInput = document.getElementById('title');
             const urlInputModal = document.getElementById('url'); // Verstecktes Feld im Modal
@@ -94,6 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const url = urlInputModal.value.trim();
             const category = categoryInput.value.trim();
             const favicon_url = faviconUrlInput.value.trim();
+            const detected_favicon_url = (document.getElementById('detectedFaviconUrl')?.value || '').trim();
     
             // Validierung
             const urlPattern = /^https?:\/\//i;
@@ -127,7 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
             fetch('save_favorite.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `title=${encodeURIComponent(title)}&category=${encodeURIComponent(category)}&url=${encodeURIComponent(url)}&favicon_url=${encodeURIComponent(favicon_url)}`
+                body: `title=${encodeURIComponent(title)}&category=${encodeURIComponent(category)}&url=${encodeURIComponent(url)}&favicon_url=${encodeURIComponent(favicon_url)}&detected_favicon_url=${encodeURIComponent(detected_favicon_url)}`
             })
                 .then(response => {
                     if (!response.ok) {
@@ -161,18 +206,50 @@ document.addEventListener('DOMContentLoaded', () => {
                 const url = favoriteDiv.querySelector('a').getAttribute('href');
                 const favicon = favoriteDiv.querySelector('img').getAttribute('src');
                 
-                // Direkt die Werte aus dem DOM setzen, anstatt eine API abzufragen
                 document.getElementById('edit_id').value = id;
                 document.getElementById('edit_title').value = title;
                 document.getElementById('edit_url').value = url;
-                // Aktuelle Kategorie finden
                 const categoryId = favoriteDiv.closest('.category').dataset.categoryId;
                 document.getElementById('edit_category').value = categoryId;
-                document.getElementById('edit_favicon_url').value = favicon;
+                document.getElementById('edit_favicon_url').value = '';
+
+                // Aktuelle Favicon als Preview anzeigen (als Ausgangspunkt setzen)
+                const previewEl = document.getElementById('editFaviconPreview');
+                const imgEl = document.getElementById('editFaviconPreviewImg');
+                const sourceEl = document.getElementById('editFaviconPreviewSource');
+                const hiddenEditFavicon = document.getElementById('editDetectedFaviconUrl');
+                if (hiddenEditFavicon) hiddenEditFavicon.value = favicon || '';
+                if (previewEl && imgEl && sourceEl && favicon) {
+                    showFaviconPreview(previewEl, imgEl, sourceEl, favicon, favicon, null);
+                }
                 
                 modal.show();
             });
         });
+
+        // Favicon-Preview bei URL-Änderung im Edit-Modal
+        const editUrlField = document.getElementById('edit_url');
+        if (editUrlField) {
+            let editFaviconTimer = null;
+            editUrlField.addEventListener('input', () => {
+                clearTimeout(editFaviconTimer);
+                const val = editUrlField.value.trim();
+                if (!val || !/^https?:\/\//i.test(val)) return;
+                editFaviconTimer = setTimeout(() => {
+                    const previewEl = document.getElementById('editFaviconPreview');
+                    const imgEl = document.getElementById('editFaviconPreviewImg');
+                    const sourceEl = document.getElementById('editFaviconPreviewSource');
+                    const hiddenEditFavicon = document.getElementById('editDetectedFaviconUrl');
+                    if (previewEl && imgEl && sourceEl) {
+                        fetchFavicon(val).then(data => {
+                            if (data && data.favicon) {
+                                showFaviconPreview(previewEl, imgEl, sourceEl, data.favicon, data.source, hiddenEditFavicon);
+                            }
+                        });
+                    }
+                }, 800);
+            });
+        }
 
         // Delete-Buttons für Favoriten
         document.querySelectorAll('.delete-favorite').forEach(btn => {
@@ -229,6 +306,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const url = urlInput.value.trim();
                 const category = categoryInput.value.trim();
                 const favicon_url = faviconUrlInput.value.trim();
+                const detected_favicon_url = (document.getElementById('editDetectedFaviconUrl')?.value || '').trim();
     
                 // Validierung
                 const urlPattern = /^https?:\/\//i;
@@ -268,7 +346,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 fetch('edit_favorite.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: `id=${encodeURIComponent(id)}&title=${encodeURIComponent(title)}&category=${encodeURIComponent(category)}&url=${encodeURIComponent(url)}&favicon_url=${encodeURIComponent(favicon_url)}`
+                    body: `id=${encodeURIComponent(id)}&title=${encodeURIComponent(title)}&category=${encodeURIComponent(category)}&url=${encodeURIComponent(url)}&favicon_url=${encodeURIComponent(favicon_url)}&detected_favicon_url=${encodeURIComponent(detected_favicon_url)}`
                 })
                     .then(response => {
                         if (!response.ok) {
@@ -347,6 +425,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('title').value = title || '';
                 const modal = new bootstrap.Modal(document.getElementById('favoriteModal'));
                 modal.show();
+                // Favicon-Preview laden
+                const previewEl = document.getElementById('faviconPreview');
+                const imgEl = document.getElementById('faviconPreviewImg');
+                const sourceEl = document.getElementById('faviconPreviewSource');
+                const hiddenFavicon = document.getElementById('detectedFaviconUrl');
+                if (previewEl && imgEl && sourceEl) {
+                    fetchFavicon(url).then(data => {
+                        if (data && data.favicon) {
+                            showFaviconPreview(previewEl, imgEl, sourceEl, data.favicon, data.source, hiddenFavicon);
+                        }
+                    });
+                }
             });
         }
     };
@@ -361,6 +451,31 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Fehler beim Abrufen des Titels:', error);
             return url;
         }
+    }
+
+    // Favicon aus URL erkennen (HTML parsen, /favicon.ico, Google API als Fallback)
+    async function fetchFavicon(url) {
+        try {
+            const response = await fetch('get_favicon.php?url=' + encodeURIComponent(url));
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('Fehler beim Abrufen des Favicons:', error);
+            return null;
+        }
+    }
+
+    // Favicon-Preview aktualisieren (hiddenInput optional – wird mit erkannter URL befüllt)
+    function showFaviconPreview(previewEl, imgEl, sourceEl, faviconUrl, sourceUrl, hiddenInput) {
+        if (!faviconUrl) {
+            previewEl.classList.add('d-none');
+            return;
+        }
+        imgEl.src = faviconUrl;
+        sourceEl.href = sourceUrl !== 'Google Favicon API' ? sourceUrl : '#';
+        sourceEl.textContent = sourceUrl;
+        previewEl.classList.remove('d-none');
+        if (hiddenInput) hiddenInput.value = faviconUrl;
     }
 
     // Visuelles Feedback für Dragover/Dragleave

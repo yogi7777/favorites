@@ -4,24 +4,26 @@ require_once 'auth.php';
 checkAuth();
 
 // Verzeichnis mit den Favicons
-$faviconsDir = 'favicons/';
+$faviconsDir = __DIR__ . '/favicons/';
 
-// Alle PNG-Dateien im Favicons-Ordner holen
-$files = glob($faviconsDir . '*.png');
+// Alle Dateien im Favicons-Ordner holen (alle Typen)
+$files = file_exists($faviconsDir) ? glob($faviconsDir . '*') : [];
 $orphanedFiles = [];
 
 // Alle favicon_urls aus der Datenbank holen
-$stmt = $pdo->query("SELECT favicon_url FROM favorites");
+$stmt = $pdo->query("SELECT DISTINCT favicon_url FROM favorites WHERE favicon_url IS NOT NULL AND favicon_url != ''");
 $dbFavicons = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
+// Normalisieren: führendes '/' entfernen → immer 'favicons/...'
+$normalizedDb = array_flip(
+    array_map(fn($f) => ltrim((string)$f, '/'), $dbFavicons)
+);
+
 // Prüfen, welche Dateien nicht in der DB referenziert sind
-foreach ($files as $file) {
-    // Relativer Pfad wie in der DB (z. B. favicons/favicon_5.png)
-    $relativePath = str_replace($_SERVER['DOCUMENT_ROOT'], '', $file);
-    $relativePath = ltrim($relativePath, '/'); // Entferne führendes Slash, falls vorhanden
-    
-    if (!in_array($relativePath, $dbFavicons)) {
-        $orphanedFiles[] = $file;
+foreach ($files as $filePath) {
+    $relativePath = 'favicons/' . basename($filePath);
+    if (!isset($normalizedDb[$relativePath])) {
+        $orphanedFiles[] = $filePath;
     }
 }
 
@@ -32,7 +34,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
             unlink($file);
         }
     }
-    // Weiterleitung, um die Liste zu aktualisieren
     header('Location: ' . $_SERVER['PHP_SELF']);
     exit;
 }

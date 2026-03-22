@@ -279,11 +279,57 @@ function refreshAllUserFavicons($user_id, $pdo) {
 
     error_log("=== Favicon-Refresh abgeschlossen: Total=$total, Updated=$updated, Failed=$failed ===");
 
+    // Verwaiste Favicon-Dateien bereinigen
+    $cleanup = cleanupOrphanedFavicons($pdo);
+    error_log("Cleanup: {$cleanup['deleted']} verwaiste Favicon-Dateien gelöscht.");
+
     return [
         'success' => true,
         'message' => 'Favicon-Aktualisierung abgeschlossen.',
-        'stats' => ['total' => $total, 'updated' => $updated, 'failed' => $failed]
+        'stats' => [
+            'total'   => $total,
+            'updated' => $updated,
+            'failed'  => $failed,
+            'cleaned' => $cleanup['deleted'],
+        ]
     ];
+}
+
+/**
+ * Löscht Favicon-Dateien im /favicons/ Ordner, die nicht mehr in der Datenbank referenziert sind.
+ */
+function cleanupOrphanedFavicons($pdo): array {
+    $dir = __DIR__ . '/favicons/';
+    if (!is_dir($dir)) {
+        return ['deleted' => 0];
+    }
+
+    // Alle vorhandenen Dateien im Ordner
+    $files = glob($dir . '*');
+    if (!$files) {
+        return ['deleted' => 0];
+    }
+
+    // Alle referenzierten favicon_urls aus der DB holen (alle Benutzer)
+    $stmt = $pdo->query("SELECT DISTINCT favicon_url FROM favorites WHERE favicon_url IS NOT NULL AND favicon_url != ''");
+    $dbFavicons = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+    // Normalisieren: führendes '/' entfernen → immer 'favicons/...'
+    $normalized = array_map(fn($f) => ltrim((string)$f, '/'), $dbFavicons);
+    $normalizedSet = array_flip($normalized); // Für O(1)-Lookup
+
+    $deleted = 0;
+    foreach ($files as $filePath) {
+        $relativePath = 'favicons/' . basename($filePath);
+        if (!isset($normalizedSet[$relativePath])) {
+            if (@unlink($filePath)) {
+                $deleted++;
+                error_log("Cleanup: Verwaistes Favicon gelöscht: $relativePath");
+            }
+        }
+    }
+
+    return ['deleted' => $deleted];
 }
 
 /**
