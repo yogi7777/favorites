@@ -76,6 +76,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($needsDownload) {
             $preferred = $favicon_sources[0] ?? '';
+            // Google-API-URL NICHT als preferred übergeben – lieber echtes favicon.ico direkt versuchen
+            if (str_contains($preferred, 'google.com/s2/favicons')) $preferred = '';
             $local_favicon = detectAndDownloadFavicon($url, $id, $preferred);
             if ($local_favicon) {
                 $new_favicon_path = ltrim($local_favicon, '/');

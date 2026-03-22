@@ -41,6 +41,7 @@ $source = '';
 
 // Hilfsfunktion: prüft ob eine URL eine gültige Bild-Antwort liefert
 function checkFaviconUrl(string $url): bool {
+    // Erst HEAD versuchen (schnell)
     $ch = curl_init($url);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
@@ -48,16 +49,35 @@ function checkFaviconUrl(string $url): bool {
         CURLOPT_USERAGENT      => 'Mozilla/5.0',
         CURLOPT_TIMEOUT        => 3,
         CURLOPT_SSL_VERIFYPEER => false,
-        CURLOPT_NOBODY         => true, // HEAD request
+        CURLOPT_NOBODY         => true,
     ]);
     curl_exec($ch);
     $httpCode    = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $contentType = (string)curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
     curl_close($ch);
-    return $httpCode === 200 && (
+
+    // HEAD wird von manchen Servern abgelehnt (405/501) → kleinen GET-Request versuchen
+    if ($httpCode === 405 || $httpCode === 501 || $httpCode === 0) {
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_USERAGENT      => 'Mozilla/5.0',
+            CURLOPT_TIMEOUT        => 3,
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_RANGE          => '0-511', // nur erste 512 Bytes
+        ]);
+        curl_exec($ch);
+        $httpCode    = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $contentType = (string)curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+        curl_close($ch);
+    }
+
+    if ($httpCode !== 200 && $httpCode !== 206) return false;
+    return (
         str_contains($contentType, 'image/') ||
         str_contains($contentType, 'application/octet-stream') ||
-        $contentType === '' // manche Server schicken keinen Content-Type bei HEAD
+        $contentType === '' // manche Server schicken keinen Content-Type
     );
 }
 

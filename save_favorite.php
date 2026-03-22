@@ -45,7 +45,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $favorite_id = $pdo->lastInsertId();
 
     // Favicon erkennen und lokal speichern (preferredUrl → favicon.ico → HTML → Google API)
-    $local_favicon = detectAndDownloadFavicon($url, $favorite_id, $favicon_source);
+    // Google-API-URL NICHT als preferred übergeben – lieber echtes favicon.ico direkt versuchen
+    $isGoogleApi = str_contains($favicon_source, 'google.com/s2/favicons');
+    $preferred    = $isGoogleApi ? '' : $favicon_source;
+    $local_favicon = detectAndDownloadFavicon($url, $favorite_id, $preferred);
     if ($local_favicon) {
         $stmt = $pdo->prepare("UPDATE favorites SET favicon_url = ? WHERE id = ?");
         $stmt->execute([$local_favicon, $favorite_id]);
