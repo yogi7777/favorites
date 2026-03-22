@@ -33,7 +33,7 @@ $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
     <meta name="author" content="yogi7777">
     <title>Login</title>
     <link href="assets/src/bootstrap.min.css" rel="stylesheet">
-    <link href="assets/style.css?v1.3" rel="stylesheet">
+    <link href="assets/style.css?v1.4" rel="stylesheet">
 </head>
 <body data-bs-theme="dark">
     <div class="container mt-5">

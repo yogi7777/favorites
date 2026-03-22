@@ -46,11 +46,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
     <meta name="author" content="yogi7777">
     <title>Non-referenced favicons</title>
     <link href="assets/src/bootstrap.min.css" rel="stylesheet">
-    <link href="assets/style.css?v1.3" rel="stylesheet">
+    <link href="assets/style.css?v1.4" rel="stylesheet">
 </head>
 <body data-bs-theme="dark">
     <div class="container-fluid p-0 m-0">
-        <?php include 'navigation.php'; ?>
         <div class="row mx-auto col-md-12"><br /></div>
         <div class="row mx-auto col-md-12">
             <h2>Non-referenced favicons</h2>
@@ -81,6 +80,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
             <?php endif; ?>
         </div>
     </div>
+
+        <?php include 'navigation.php'; ?>
 
     <script src="assets/src/bootstrap.bundle.min.js"></script>
     <script src="assets/script.js?v1.5"></script>
