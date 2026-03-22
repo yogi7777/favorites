@@ -34,7 +34,7 @@ body {
     font-family: 'AtkinsonHyperlegible', system-ui, sans-serif;
     font-size: calc(14px * var(--ui-zoom));
     padding-top: 0;
-    padding-bottom: 124px;
+    padding-bottom: 0;
 }
 
 .top-bar {
@@ -125,11 +125,8 @@ body {
 .bottom-nav {
     background-color: #343a40;
     border-top: 1px solid #454d55;
-    position: fixed !important;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 1040;
+    position: relative;
+    margin-top: 16px;
     min-height: 96px;
 }
 
@@ -320,7 +317,7 @@ footer a:active {
 
 @media (max-width: 767px) {
     body {
-        padding-bottom: 150px;
+        padding-bottom: 0;
     }
 
     .top-bar {

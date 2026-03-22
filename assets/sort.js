@@ -104,7 +104,7 @@ function initGridSort(container, tabSlug) {
     var draggedItem = null;
 
     container.addEventListener('dragstart', function(e) {
-        draggedItem = e.target.closest('.category');
+        draggedItem = e.target.closest('.category, .note-tile');
         if (draggedItem) {
             draggedItem.classList.add('dragging');
             e.dataTransfer.effectAllowed = 'move';
@@ -116,14 +116,13 @@ function initGridSort(container, tabSlug) {
         if (draggedItem) {
             draggedItem.classList.remove('dragging');
             draggedItem = null;
-            saveCategoryOrder(container, tabSlug);
         }
     });
 
     container.addEventListener('dragover', function(e) {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
-        var target = e.target.closest('.category');
+        var target = e.target.closest('.category, .note-tile');
         if (target && draggedItem && target !== draggedItem) {
             target.classList.add('dragover');
         }
@@ -137,9 +136,11 @@ function initGridSort(container, tabSlug) {
     container.addEventListener('drop', function(e) {
         e.preventDefault();
         document.querySelectorAll('.category.dragover').forEach(function(c) { c.classList.remove('dragover'); });
-        var target = e.target.closest('.category');
+        document.querySelectorAll('.note-tile.dragover').forEach(function(n) { n.classList.remove('dragover'); });
+
+        var target = e.target.closest('.category, .note-tile');
         if (target && draggedItem && target !== draggedItem) {
-            var all      = Array.from(container.querySelectorAll('.category'));
+            var all      = Array.from(container.querySelectorAll('.category, .note-tile'));
             var dragIdx  = all.indexOf(draggedItem);
             var targetIdx = all.indexOf(target);
             if (dragIdx < targetIdx) {
@@ -148,6 +149,7 @@ function initGridSort(container, tabSlug) {
                 target.before(draggedItem);
             }
             saveCategoryOrder(container, tabSlug);
+            saveNoteOrder(container);
         }
     });
 }
@@ -156,9 +158,30 @@ function saveCategoryOrder(container, tabSlug) {
     var order = Array.from(container.querySelectorAll('.category')).map(function(cat, idx) {
         return { id: cat.dataset.categoryId, position: idx, tab: tabSlug };
     });
+
+    if (!order.length) return;
+
     fetch('update_positions.php', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify(order)
     }).catch(function(err) { console.error('Error saving order:', err); });
+}
+
+function saveNoteOrder(container) {
+    var order = Array.from(container.querySelectorAll('.note-tile')).map(function(note, idx) {
+        return {
+            id: note.dataset.noteId,
+            tab_id: note.dataset.tabId,
+            position: idx
+        };
+    });
+
+    if (!order.length) return;
+
+    fetch('notes.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'action=update_grid_positions&data=' + encodeURIComponent(JSON.stringify(order))
+    }).catch(function(err) { console.error('Error saving note order:', err); });
 }

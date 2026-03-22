@@ -133,8 +133,13 @@ switch ($action) {
     // Body: JSON-Array [{id, tab_id, position}, ...]
     // ----------------------------------------------------------------
     case 'update_grid_positions': {
-        $raw  = file_get_contents('php://input');
-        $data = json_decode($raw, true);
+        $dataJson = $_POST['data'] ?? '';
+        if ($dataJson !== '') {
+            $data = json_decode($dataJson, true);
+        } else {
+            $raw  = file_get_contents('php://input');
+            $data = json_decode($raw, true);
+        }
 
         if (!is_array($data)) {
             http_response_code(400);

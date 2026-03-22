@@ -250,7 +250,8 @@ if ($activeTabSlug === 'alle') {
                      data-pos-x="<?php echo $note['pos_x'] !== null ? (int)$note['pos_x'] : ''; ?>"
                      data-pos-y="<?php echo $note['pos_y'] !== null ? (int)$note['pos_y'] : ''; ?>"
                      data-width="<?php echo (int)($note['width'] ?? 360); ?>"
-                     data-height="<?php echo (int)($note['height'] ?? 200); ?>">
+                     data-height="<?php echo (int)($note['height'] ?? 200); ?>"
+                     <?php if ($mode === 'edit'): ?>draggable="true"<?php endif; ?>>
                     <div class="card note-card">
                         <div class="card-header">
                             <h5 class="note-header-title"><?php echo htmlspecialchars($note['title']); ?></h5>
@@ -367,7 +368,7 @@ if ($activeTabSlug === 'alle') {
     <script src="assets/script.js?v1.5"></script>
     <script src="assets/notes.js?v1.5"></script>
     <?php if ($mode === 'edit'): ?>
-        <script src="assets/sort.js?v1.6"></script>
+        <script src="assets/sort.js?v1.7"></script>
     <?php endif; ?>
 </body>
 </html>
