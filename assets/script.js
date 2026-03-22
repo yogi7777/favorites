@@ -471,17 +471,26 @@ document.addEventListener('DOMContentLoaded', () => {
             previewEl.classList.add('d-none');
             return;
         }
-        // Externe URLs über Server-Proxy laden – verhindert Browser-Blockierung (Hotlink/CSP)
+        // Externe URLs über DuckDuckGo CDN laden (robuster, keine Hotlink-Blockierung)
         const isExternal = /^https?:\/\//i.test(faviconUrl);
-        imgEl.src = isExternal
-            ? 'get_favicon.php?img=' + encodeURIComponent(faviconUrl)
-            : faviconUrl;
-        imgEl.onerror = () => { previewEl.classList.add('d-none'); };
-        imgEl.onload  = () => { previewEl.classList.remove('d-none'); };
+        if (isExternal) {
+            try {
+                const host = new URL(faviconUrl).hostname;
+                imgEl.src = `https://icons.duckduckgo.com/ip3/${host}.ico`;
+            } catch {
+                imgEl.src = faviconUrl; // Fallback
+            }
+            imgEl.onerror = () => { previewEl.classList.add('d-none'); };
+            imgEl.onload  = () => { previewEl.classList.remove('d-none'); };
+        } else {
+            imgEl.src = faviconUrl;
+            imgEl.onerror = null;
+            imgEl.onload = null;
+        }
         sourceEl.href = (sourceUrl && sourceUrl !== 'Google Favicon API') ? sourceUrl : '#';
         sourceEl.textContent = sourceUrl || faviconUrl;
         previewEl.classList.remove('d-none');
-        if (hiddenInput) hiddenInput.value = faviconUrl; // Original-URL (nicht Proxy) speichern
+        if (hiddenInput) hiddenInput.value = faviconUrl; // Original-URL speichern
     }
 
     // Visuelles Feedback für Dragover/Dragleave

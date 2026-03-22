@@ -1,57 +1,8 @@
 <?php
+header('Content-Type: application/json');
+
 require_once 'auth.php';
 checkAuth();
-
-// ===========================================================
-// Proxy-Modus: externes Favicon-Bild über Server laden
-// Verhindert Browser-Blockierung (Hotlink, CSP, HEAD-Block)
-// ?img=<encoded_url>
-// ===========================================================
-if (isset($_GET['img'])) {
-    $imgUrl = filter_var(trim($_GET['img'] ?? ''), FILTER_VALIDATE_URL);
-    if (!$imgUrl) { http_response_code(400); exit; }
-
-    $p = parse_url($imgUrl);
-    $s = strtolower($p['scheme'] ?? '');
-    $h = strtolower($p['host'] ?? '');
-    if (!in_array($s, ['http', 'https'], true) ||
-        $h === 'localhost' || $h === '::1' ||
-        preg_match('/^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.)/', $h)) {
-        http_response_code(403); exit;
-    }
-
-    $ch = curl_init($imgUrl);
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_TIMEOUT        => 5,
-        CURLOPT_SSL_VERIFYPEER => false,
-        CURLOPT_USERAGENT      => 'Mozilla/5.0',
-    ]);
-    $data = curl_exec($ch);
-    $ct   = (string)curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
-    $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-
-    if (!$data || $code < 200 || $code >= 400) { http_response_code(404); exit; }
-
-    // Wenn Content-Type fehlt oder kein Bild, anhand Dateiendung schätzen
-    if (!str_contains($ct, 'image/')) {
-        $ext = strtolower(pathinfo(parse_url($imgUrl, PHP_URL_PATH) ?? '', PATHINFO_EXTENSION));
-        $map = ['ico' => 'image/x-icon', 'png' => 'image/png', 'gif' => 'image/gif',
-                'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'svg' => 'image/svg+xml',
-                'webp' => 'image/webp'];
-        if (!isset($map[$ext])) { http_response_code(415); exit; }
-        $ct = $map[$ext];
-    }
-
-    header('Content-Type: ' . explode(';', $ct)[0]);
-    header('Cache-Control: public, max-age=86400');
-    echo $data;
-    exit;
-}
-
-header('Content-Type: application/json');
 
 $url = $_GET['url'] ?? '';
 if (!$url || !filter_var($url, FILTER_VALIDATE_URL)) {
