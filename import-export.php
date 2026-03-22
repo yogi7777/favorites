@@ -4,6 +4,7 @@
  * 
  * Enthält Funktionen zum Exportieren und Importieren von Favorites-Daten
  */
+require_once __DIR__ . '/functions.php';
 
 /**
  * Exportiert Favorites und Kategorien eines Benutzers als JSON
@@ -150,73 +151,7 @@ function exportBrowserBookmarks($user_id, $pdo) {
  * @return string Der Pfad zum gespeicherten Favicon oder null im Fehlerfall
  */
 function downloadFavicon($url, $id) {
-    $host = parse_url($url, PHP_URL_HOST);
-    if (!$host) {
-        error_log("Favicon Error ($id): Keine Host aus URL extrahiert: $url");
-        return null;
-    }
-    
-    $favicon_url = "https://www.google.com/s2/favicons?domain=" . urlencode($host) . "&sz=256";
-    $favicon_data = null;
-    $http_code = 0;
-    
-    // Versuche mit curl zu downloaden (wenn verfügbar)
-    if (function_exists('curl_init')) {
-        $ch = curl_init($favicon_url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 5);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0');
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
-        $favicon_data = curl_exec($ch);
-        
-        if ($favicon_data === false) {
-            $curl_error = curl_error($ch);
-            error_log("Favicon Error ($id): Curl Fehler: $curl_error");
-        }
-        
-        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-    } else {
-        // Fallback auf file_get_contents wenn curl nicht verfügbar
-        $favicon_data = @file_get_contents($favicon_url);
-        if ($favicon_data === false) {
-            error_log("Favicon Error ($id): file_get_contents fehlgeschlagen für $favicon_url");
-        } else {
-            $http_code = 200;
-        }
-    }
-
-    if (!$favicon_data || strlen($favicon_data) < 100) {
-        error_log("Favicon Error ($id): Keine gültigen Daten heruntergeladen. Size: " . (!$favicon_data ? 0 : strlen($favicon_data)) . " bytes");
-        return null;
-    }
-
-    // Stelle sicher, dass das Favicon-Verzeichnis existiert
-    if (!file_exists('favicons')) {
-        if (!mkdir('favicons', 0755, true)) {
-            error_log("Favicon Error ($id): Favicon-Verzeichnis konnte nicht erstellt werden");
-            return null;
-        }
-    }
-    
-    $new_favicon_path = "favicons/favicon_$id.png";
-    $bytes_written = @file_put_contents($new_favicon_path, $favicon_data);
-    
-    if ($bytes_written === false) {
-        error_log("Favicon Error ($id): Datei konnte nicht geschrieben werden: $new_favicon_path");
-        return null;
-    }
-    
-    if ($bytes_written === 0) {
-        error_log("Favicon Error ($id): Keine Bytes geschrieben zu $new_favicon_path");
-        return null;
-    }
-    
-    error_log("Favicon Success ($id): $bytes_written bytes geschrieben zu $new_favicon_path");
-    // Gib absoluten Pfad zurück, damit nginx Proxy funktioniert
-    return "/favicons/favicon_$id.png";
+    return detectAndDownloadFavicon($url, (int)$id);
 }
 
 /**

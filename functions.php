@@ -122,3 +122,119 @@ function normalizeFaviconPath(string $faviconUrl): string {
     // Fallback für andere Fälle
     return '/' . $faviconUrl;
 }
+
+/**
+ * Erkennt das Favicon einer Webseite und speichert es lokal.
+ * Reihenfolge: preferredUrl → /favicon.ico → HTML-Parsing → Google API
+ *
+ * @param string $pageUrl      URL der Webseite
+ * @param int    $id           ID des Favoriten (für Dateinamen)
+ * @param string $preferredUrl Optional: bereits erkannte URL (z.B. vom JS-Modal)
+ * @return string|null  Lokaler absoluter Pfad (/favicons/favicon_N.ext) oder null
+ */
+function detectAndDownloadFavicon(string $pageUrl, int $id, string $preferredUrl = ''): ?string {
+    $parsed = parse_url($pageUrl);
+    $host   = strtolower($parsed['host'] ?? '');
+    $scheme = strtolower($parsed['scheme'] ?? 'https');
+    if (!$host) return null;
+
+    $baseUrl = $scheme . '://' . $host;
+
+    // Hilfsfunktion: URL abrufen, auf Bild-Content-Type prüfen
+    $fetchImage = function(string $src): ?array {
+        $ch = curl_init($src);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_TIMEOUT        => 5,
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_USERAGENT      => 'Mozilla/5.0',
+        ]);
+        $data        = curl_exec($ch);
+        $contentType = (string)curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+        curl_close($ch);
+        if (!$data || strlen($data) < 100 || !str_contains($contentType, 'image/')) return null;
+        return ['data' => $data, 'type' => $contentType];
+    };
+
+    $result = null;
+
+    // 1. Bevorzugte URL (aus JS-Erkennung oder Custom-URL)
+    if ($preferredUrl && (str_starts_with($preferredUrl, 'http://') || str_starts_with($preferredUrl, 'https://'))) {
+        $result = $fetchImage($preferredUrl);
+    }
+
+    // 2. /favicon.ico direkt
+    if (!$result) {
+        $result = $fetchImage($baseUrl . '/favicon.ico');
+    }
+
+    // 3. HTML-Parsing: <link rel="icon">
+    if (!$result) {
+        $ch = curl_init($pageUrl);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_TIMEOUT        => 5,
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_USERAGENT      => 'Mozilla/5.0',
+            CURLOPT_MAXREDIRS      => 5,
+        ]);
+        $html = curl_exec($ch);
+        curl_close($ch);
+
+        if ($html) {
+            $patterns = [
+                '/<link[^>]+rel=["\']apple-touch-icon["\'][^>]+href=["\']([^"\']+)["\'][^>]*>/i',
+                '/<link[^>]+rel=["\']icon["\'][^>]+href=["\']([^"\']+)["\'][^>]*>/i',
+                '/<link[^>]+rel=["\']shortcut icon["\'][^>]+href=["\']([^"\']+)["\'][^>]*>/i',
+                '/<link[^>]+href=["\']([^"\']+)["\'][^>]+rel=["\']apple-touch-icon["\'][^>]*>/i',
+                '/<link[^>]+href=["\']([^"\']+)["\'][^>]+rel=["\']icon["\'][^>]*>/i',
+                '/<link[^>]+href=["\']([^"\']+)["\'][^>]+rel=["\']shortcut icon["\'][^>]*>/i',
+            ];
+            foreach ($patterns as $pattern) {
+                if (preg_match($pattern, $html, $match)) {
+                    $found = trim($match[1]);
+                    if (!$found) continue;
+                    if      (str_starts_with($found, 'http://') || str_starts_with($found, 'https://')) $candidate = $found;
+                    elseif  (str_starts_with($found, '//'))  $candidate = $scheme . ':' . $found;
+                    elseif  (str_starts_with($found, '/'))   $candidate = $baseUrl . $found;
+                    else    $candidate = $baseUrl . '/' . $found;
+                    $result = $fetchImage($candidate);
+                    if ($result) break;
+                }
+            }
+        }
+    }
+
+    // 4. Google Favicon API als letzter Fallback
+    if (!$result) {
+        $result = $fetchImage('https://www.google.com/s2/favicons?domain=' . urlencode($host) . '&sz=256');
+    }
+
+    if (!$result) {
+        error_log("detectAndDownloadFavicon ($id): Alle Quellen fehlgeschlagen für $pageUrl");
+        return null;
+    }
+
+    $ext = '.png';
+    if (str_contains($result['type'], 'jpeg') || str_contains($result['type'], 'jpg')) $ext = '.jpg';
+    elseif (str_contains($result['type'], 'gif'))  $ext = '.gif';
+    elseif (str_contains($result['type'], 'svg'))  $ext = '.svg';
+
+    $favDir = __DIR__ . '/favicons';
+    if (!file_exists($favDir) && !mkdir($favDir, 0755, true)) {
+        error_log("detectAndDownloadFavicon ($id): Verzeichnis konnte nicht erstellt werden");
+        return null;
+    }
+
+    $path  = 'favicons/favicon_' . $id . $ext;
+    $bytes = @file_put_contents(__DIR__ . '/' . $path, $result['data']);
+    if (!$bytes) {
+        error_log("detectAndDownloadFavicon ($id): Schreiben fehlgeschlagen: $path");
+        return null;
+    }
+
+    error_log("detectAndDownloadFavicon ($id): $bytes bytes → $path");
+    return '/' . $path;
+}

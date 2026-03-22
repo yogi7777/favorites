@@ -1,6 +1,7 @@
 <?php
 require_once 'config.php';
 require_once 'auth.php';
+require_once __DIR__ . '/functions.php';
 checkAuth();
 
 header('Content-Type: application/json');
@@ -74,44 +75,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // sonst: URL unverändert → vorhandenes lokales Favicon behalten
 
         if ($needsDownload) {
-            // Google API immer als letzter Fallback
-            $host = parse_url($url, PHP_URL_HOST);
-            if ($host) {
-                $favicon_sources[] = 'https://www.google.com/s2/favicons?domain=' . urlencode($host) . '&sz=256';
-            }
-
-            if (!file_exists('favicons')) mkdir('favicons', 0755, true);
-
-            foreach ($favicon_sources as $src) {
-                $ch = curl_init($src);
-                curl_setopt_array($ch, [
-                    CURLOPT_RETURNTRANSFER => true,
-                    CURLOPT_FOLLOWLOCATION => true,
-                    CURLOPT_TIMEOUT        => 5,
-                    CURLOPT_SSL_VERIFYPEER => false,
-                    CURLOPT_USERAGENT      => 'Mozilla/5.0',
-                ]);
-                $favicon_data = curl_exec($ch);
-                $content_type = (string)curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
-                curl_close($ch);
-
-                // Nur echte Bilder akzeptieren
-                if (!$favicon_data || strlen($favicon_data) < 100 || !str_contains($content_type, 'image/')) {
-                    error_log("edit_favorite: Download fehlgeschlagen oder kein Bild für ID $id, Quelle: $src (Content-Type: $content_type)");
-                    continue;
-                }
-
-                $ext = '.png';
-                if (str_contains($content_type, 'jpeg') || str_contains($content_type, 'jpg')) $ext = '.jpg';
-                elseif (str_contains($content_type, 'gif')) $ext = '.gif';
-                elseif (str_contains($content_type, 'svg')) $ext = '.svg';
-
-                $local_path = "favicons/favicon_$id$ext";
-                if (@file_put_contents($local_path, $favicon_data) !== false) {
-                    $new_favicon_path = $local_path;
-                    $favicon_stored = '/' . $local_path;
-                }
-                break; // Erfolg
+            $preferred = $favicon_sources[0] ?? '';
+            $local_favicon = detectAndDownloadFavicon($url, $id, $preferred);
+            if ($local_favicon) {
+                $new_favicon_path = ltrim($local_favicon, '/');
+                $favicon_stored   = $local_favicon;
             }
         }
 
