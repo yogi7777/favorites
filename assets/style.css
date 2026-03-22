@@ -125,12 +125,25 @@ body {
 .bottom-nav {
     background-color: #343a40;
     border-top: 1px solid #454d55;
-    position: fixed;
+    position: fixed !important;
     left: 0;
     right: 0;
     bottom: 0;
     z-index: 1040;
     min-height: 96px;
+}
+
+#categories.all-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 15px;
+    column-count: unset;
+}
+
+#categories.all-grid .category,
+#categories.all-grid .note-tile {
+    break-inside: unset;
+    margin-bottom: 0;
 }
 
 .bottom-nav-list {
@@ -330,6 +343,10 @@ footer a:active {
 
     #categories {
         column-count: 1; /* 1 Spalte */
+    }
+
+    #categories.all-grid {
+        grid-template-columns: 1fr;
     }
     .card-title {
         font-size: 1rem;

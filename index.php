@@ -140,7 +140,7 @@ if ($activeTabSlug === 'alle') {
     <meta name="author" content="yogi7777">
     <title>Favorites</title>
     <link href="assets/src/bootstrap.min.css" rel="stylesheet">
-    <link href="assets/style.css?v1.2" rel="stylesheet">
+    <link href="assets/style.css?v1.3" rel="stylesheet">
 </head>
 <body data-bs-theme="dark"<?php if ($mode === 'edit'): ?> class="edit-mode"<?php endif; ?>>
     <div class="container-fluid p-0 m-0">
@@ -210,7 +210,7 @@ if ($activeTabSlug === 'alle') {
             </div>
         <?php endif; ?>
 
-        <div id="categories"
+        <div id="categories" class="<?php echo $activeTabSlug === 'alle' ? 'all-grid' : ''; ?>"
              data-tab-slug="<?php echo htmlspecialchars($activeTabSlug); ?>"
              data-tab-id="<?php echo (int)$activeTabId; ?>"
              <?php if ($mode === 'edit'): ?>data-sortable<?php endif; ?>>

@@ -56,10 +56,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const isEdit = document.body.classList.contains('edit-mode');
     const hasStoredPositions = hasStoredCanvasPositions(container);
 
-    if (tabSlug === 'alle') {
-        sortTilesByHeaderTitle(container);
-    }
-
     if (window.innerWidth >= 992 && tabSlug !== 'alle' && hasStoredPositions) {
         initFreeCanvasLayout(container, tabId, isEdit);
     }
@@ -78,45 +74,6 @@ function hasStoredCanvasPositions(container) {
         const py = parseInt(y, 10);
         return !Number.isNaN(px) && !Number.isNaN(py);
     });
-}
-
-function sortTilesByHeaderTitle(container) {
-    const tiles = Array.from(container.querySelectorAll(':scope > .category, :scope > .note-tile'));
-    if (!tiles.length) return;
-
-    tiles.sort((a, b) => {
-        const aTitle = getTileHeaderTitle(a);
-        const bTitle = getTileHeaderTitle(b);
-        const aKey = normalizeSortKey(aTitle);
-        const bKey = normalizeSortKey(bTitle);
-
-        const keyCmp = aKey.localeCompare(bKey, undefined, { sensitivity: 'base', numeric: true });
-        if (keyCmp !== 0) return keyCmp;
-
-        // Stable tie-breaker with original title text.
-        return aTitle.localeCompare(bTitle, undefined, { sensitivity: 'base', numeric: true });
-    });
-
-    tiles.forEach((tile) => container.appendChild(tile));
-}
-
-function getTileHeaderTitle(tile) {
-    const titleEl = tile.querySelector('.card-header .card-title, .card-header .note-header-title');
-    return (titleEl ? titleEl.textContent : '').trim();
-}
-
-function normalizeSortKey(title) {
-    if (!title) return '';
-
-    let key = title.normalize('NFKD').trim().toLowerCase();
-
-    // Ignore leading emojis/symbols/punctuation for alphabetic sorting.
-    key = key.replace(/^[^\p{L}\p{N}]+/u, '');
-
-    // Normalize internal whitespace.
-    key = key.replace(/\s+/g, ' ').trim();
-
-    return key || title.toLowerCase();
 }
 
 function initFreeCanvasLayout(container, tabId, isEdit) {

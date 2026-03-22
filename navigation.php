@@ -4,7 +4,7 @@ $mode = $_GET['mode'] ?? 'view';
 $page = basename($_SERVER['PHP_SELF']);
 $currentTab = $_GET['tab'] ?? 'alle';
 ?>
-<nav class="bottom-nav navbar navbar-expand navbar-dark">
+<nav class="bottom-nav fixed-bottom navbar navbar-expand navbar-dark">
     <div class="container-fluid justify-content-center">
         <ul class="navbar-nav bottom-nav-list">
             <li class="nav-item">
