@@ -150,6 +150,9 @@ function initGridSort(container, tabSlug) {
             }
             saveCategoryOrder(container, tabSlug);
             saveNoteOrder(container);
+            if (window.refreshAllGridMasonry) {
+                window.refreshAllGridMasonry();
+            }
         }
     });
 }

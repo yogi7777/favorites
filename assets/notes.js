@@ -56,6 +56,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const isEdit = document.body.classList.contains('edit-mode');
     const hasStoredPositions = hasStoredCanvasPositions(container);
 
+    if (tabSlug === 'alle' && container.classList.contains('all-grid')) {
+        initAllGridMasonry(container);
+    }
+
     if (window.innerWidth >= 992 && tabSlug !== 'alle' && hasStoredPositions) {
         initFreeCanvasLayout(container, tabId, isEdit);
     }
@@ -73,6 +77,45 @@ function hasStoredCanvasPositions(container) {
         const px = parseInt(x, 10);
         const py = parseInt(y, 10);
         return !Number.isNaN(px) && !Number.isNaN(py);
+    });
+}
+
+function initAllGridMasonry(container) {
+    let rafId = 0;
+
+    const relayout = () => {
+        rafId = 0;
+
+        const styles = window.getComputedStyle(container);
+        const rowSize = parseFloat(styles.getPropertyValue('grid-auto-rows'));
+        const rowGap = parseFloat(styles.getPropertyValue('row-gap')) || 0;
+        if (!rowSize || Number.isNaN(rowSize)) return;
+
+        container.querySelectorAll(':scope > .category, :scope > .note-tile').forEach((tile) => {
+            tile.style.gridRowEnd = '';
+            const tileHeight = tile.getBoundingClientRect().height;
+            const span = Math.max(1, Math.ceil((tileHeight + rowGap) / (rowSize + rowGap)));
+            tile.style.gridRowEnd = 'span ' + span;
+        });
+    };
+
+    const queueRelayout = () => {
+        if (rafId) {
+            cancelAnimationFrame(rafId);
+        }
+        rafId = requestAnimationFrame(relayout);
+    };
+
+    // Used by sort.js after drag/drop reorder.
+    window.refreshAllGridMasonry = queueRelayout;
+
+    queueRelayout();
+    window.addEventListener('resize', queueRelayout);
+
+    container.querySelectorAll('img').forEach((img) => {
+        if (!img.complete) {
+            img.addEventListener('load', queueRelayout, { once: true });
+        }
     });
 }
 
