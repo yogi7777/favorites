@@ -12,7 +12,36 @@
  */
 
 // Bereits eingerichtet → direkt zur Login-Seite
-if (file_exists(__DIR__ . '/.setup_complete')) {
+$setupCompleted = false;
+
+if (file_exists(__DIR__ . '/config.php') || file_exists(__DIR__ . '/.env')) {
+    try {
+        // Versuche, die DB-Verbindung zu laden (über config.php oder env)
+        if (file_exists(__DIR__ . '/config.php')) {
+            require_once __DIR__ . '/config.php';
+        } elseif (file_exists(__DIR__ . '/.env')) {
+            // Hier deine loadEnv-Funktion aufrufen, falls du sie hast
+        }
+
+        if (defined('DB_HOST') && defined('DB_NAME')) {
+            $pdoCheck = new PDO(
+                "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
+                DB_USER ?? getenv('DB_USER'),
+                DB_PASS ?? getenv('DB_PASS'),
+                [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+            );
+
+            $stmt = $pdoCheck->query("SELECT `value` FROM system_settings WHERE `key` = 'setup_completed' LIMIT 1");
+            if ($stmt && $stmt->fetchColumn() === '1') {
+                $setupCompleted = true;
+            }
+        }
+    } catch (Exception $e) {
+        // Stille Fehler – falls DB noch nicht existiert, Setup erlauben
+    }
+}
+
+if ($setupCompleted) {
     header('Location: login.php');
     exit;
 }
@@ -100,18 +129,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $sql = file_get_contents($sqlFile);
 
-            // Statements aufteilen; CREATE DATABASE und USE überspringen
-            // (Datenbank wurde bereits oben angelegt)
-            $stmts = array_filter(
-                array_map('trim', explode(";\n", $sql)),
-                static fn(string $s): bool =>
-                    $s !== '' && !preg_match('/^\s*(CREATE\s+DATABASE|USE\s+)/i', $s)
-                    && !preg_match('/^--/', $s)
-            );
+            // Foreign Key Checks deaktivieren (sehr wichtig!)
+            $pdoDb->exec("SET FOREIGN_KEY_CHECKS = 0;");
 
-            foreach ($stmts as $stmt) {
+            // Bessere Aufteilung der Statements
+            $statements = preg_split('/;\s*(--.*)?$/m', $sql, -1, PREG_SPLIT_NO_EMPTY);
+
+            foreach ($statements as $stmt) {
+                $stmt = trim($stmt);
+                if ($stmt === '') continue;
+
+                // Überspringe CREATE DATABASE, USE und reine Kommentare
+                if (preg_match('/^\s*(CREATE\s+DATABASE|USE\s+|--)/i', $stmt)) {
+                    continue;
+                }
+
                 $pdoDb->exec($stmt);
             }
+
+            $pdoDb->exec("SET FOREIGN_KEY_CHECKS = 1;");
+
             $info[] = '✓ Datenbanktabellen angelegt.';
 
         } catch (PDOException | RuntimeException $e) {
@@ -133,35 +170,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // ── Schritt 5: config.php schreiben ──────────────────────────────────────
+    // ── Schritt 5: config.php prüfen ──────────────────────────────────────
     if (empty($errors)) {
-        $cfg = '<?php' . "\n"
-            . '# Datenbankverbindung – generiert von setup.php am ' . date('Y-m-d H:i:s') . "\n\n"
-            . 'define(\'DB_HOST\', ' . var_export($db_host, true) . ");\n"
-            . 'define(\'DB_USER\', ' . var_export($db_user, true) . ");\n"
-            . 'define(\'DB_PASS\', ' . var_export($db_pass, true) . ");\n"
-            . 'define(\'DB_NAME\', ' . var_export($db_name, true) . ");\n\n"
-            . "try {\n"
-            . '    $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4", DB_USER, DB_PASS);' . "\n"
-            . '    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);' . "\n"
-            . "} catch (PDOException \$e) {\n"
-            . '    die("Datenbankverbindung fehlgeschlagen: " . $e->getMessage());' . "\n"
-            . "}\n";
+        $usingEnv = file_exists(__DIR__ . '/.env');
 
-        if (file_put_contents(__DIR__ . '/config.php', $cfg) === false) {
-            $errors[] = 'config.php konnte nicht geschrieben werden (Schreibrechte prüfen).';
-        } else {
-            $info[] = '✓ config.php erstellt.';
+        if ($usingEnv) {
+            // Docker / .env Modus – nichts schreiben
+            if (!getenv('DB_HOST') || !getenv('DB_USER') || !getenv('DB_NAME')) {
+                $errors[] = 'Umgebungsvariablen fehlen (.env Datei prüfen).';
+            } else {
+                $info[] = '✓ Konfiguration aus .env Datei übernommen (Docker-Modus).';
+            }
+        } 
+        else {
+            // Klassischer Hosting-Modus → config.php schreiben
+            $cfg = '<?php' . "\n"
+                . '# Datenbankverbindung – generiert von setup.php am ' . date('Y-m-d H:i:s') . "\n\n"
+                . 'define(\'DB_HOST\', ' . var_export($db_host, true) . ");\n"
+                . 'define(\'DB_USER\', ' . var_export($db_user, true) . ");\n"
+                . 'define(\'DB_PASS\', ' . var_export($db_pass, true) . ");\n"
+                . 'define(\'DB_NAME\', ' . var_export($db_name, true) . ");\n\n"
+                . "try {\n"
+                . '    $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4", DB_USER, DB_PASS);' . "\n"
+                . '    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);' . "\n"
+                . "} catch (PDOException \$e) {\n"
+                . '    die("Datenbankverbindung fehlgeschlagen: " . $e->getMessage());' . "\n"
+                . "}\n";
+
+            if (file_put_contents(__DIR__ . '/config.php', $cfg) === false) {
+                $errors[] = 'config.php konnte nicht geschrieben werden (Schreibrechte prüfen).';
+            } else {
+                $info[] = '✓ config.php erstellt.';
+            }
         }
     }
 
     // ── Schritt 6: Setup als abgeschlossen markieren ─────────────────────────
     if (empty($errors)) {
-        file_put_contents(
-            __DIR__ . '/.setup_complete',
-            'Setup abgeschlossen: ' . date('Y-m-d H:i:s') . "\n"
-        );
-        $success = true;
+        try {
+            // Flag in der Datenbank setzen
+            $stmt = $pdoDb->prepare(
+                "INSERT INTO system_settings (`key`, `value`) 
+                 VALUES ('setup_completed', '1')
+                 ON DUPLICATE KEY UPDATE `value` = '1', `updated_at` = CURRENT_TIMESTAMP"
+            );
+            $stmt->execute();
+
+            $info[] = '✓ Setup als abgeschlossen markiert (in Datenbank).';
+            $success = true;
+
+        } catch (PDOException $e) {
+            $errors[] = 'Setup konnte nicht als abgeschlossen markiert werden: ' . $e->getMessage();
+        }
     }
 }
 ?>
