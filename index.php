@@ -25,7 +25,7 @@ if (file_exists(__DIR__ . '/config.php') || file_exists(__DIR__ . '/.env')) {
             }
         }
     } catch (Exception $e) {
-        die("DB-Fehler: " . $e->getMessage());
+        // Stille Fehler – falls DB noch nicht existiert, Setup erlauben
     }
 }
 
