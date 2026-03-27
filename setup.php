@@ -42,7 +42,7 @@ if (file_exists(__DIR__ . '/config.php') || file_exists(__DIR__ . '/.env')) {
 }
 
 if ($setupCompleted) {
-    header('Location: login.php');
+    header('Location: index.php');
     exit;
 }
 
