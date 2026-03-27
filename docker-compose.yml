@@ -27,11 +27,30 @@ services:
     restart: unless-stopped
     ports:
       - "${APP_PORT:-8080}:80"
+    environment:
+      # Wir speichern die ganze Config in einer Variable
+      NGINX_CONF: |
+        server {
+            listen 80;
+            server_name _;
+            root /var/www/html;
+            index index.php index.html;
+            client_max_body_size 20m;
+            location /favicons/ { try_files $$uri =404; }
+            location / { try_files $$uri $$uri/ /index.php?$$query_string; }
+            location ~ \.php$$ {
+                include fastcgi_params;
+                fastcgi_pass app:9000;
+                fastcgi_index index.php;
+                fastcgi_param SCRIPT_FILENAME $$document_root$$fastcgi_script_name;
+                fastcgi_read_timeout 120s;
+            }
+            location ~ /\.(?!well-known).* { deny all; }
+        }
+    # Dieser Befehl schreibt die Variable in die Datei und startet dann Nginx
+    command: /bin/sh -c "echo \"$$NGINX_CONF\" > /etc/nginx/conf.d/default.conf && exec nginx -g 'daemon off;'"
     volumes:
       - ./:/var/www/html:ro
-    configs:
-      - source: nginx_config
-        target: /etc/nginx/conf.d/default.conf
     depends_on:
       - app
     networks:
@@ -57,39 +76,6 @@ services:
       start_period: 20s
     networks:
       - favorites-net
-
-configs:
-  nginx_config:
-    inline: |
-      server {
-          listen 80;
-          server_name _;
-
-          root /var/www/html;
-          index index.php index.html;
-
-          client_max_body_size 20m;
-
-          location /favicons/ {
-              try_files $uri =404;
-          }
-
-          location / {
-              try_files $uri $uri/ /index.php?$query_string;
-          }
-
-          location ~ \.php$ {
-              include fastcgi_params;
-              fastcgi_pass app:9000;
-              fastcgi_index index.php;
-              fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-              fastcgi_read_timeout 120s;
-          }
-
-          location ~ /\.(?!well-known).* {
-              deny all;
-          }
-      }
 
 volumes:
   favorites-db-data:
