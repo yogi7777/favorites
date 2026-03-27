@@ -270,7 +270,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div><?= htmlspecialchars($msg) ?></div>
         <?php endforeach ?>
     </div>
-    <a href="login.php" class="btn-login">→ Zum Login</a>
+    <a href="index.php" class="btn-login">→ Startseite</a>
 
     <?php else: ?>
     <!-- ── Formular ───────────────────────────────────────────── -->
