@@ -59,7 +59,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // (a) Benutzer eine eigene URL angegeben hat, ODER
         // (b) Eine neue Remote-URL erkannt wurde (URL wurde im Modal geändert)
         // NICHT neu laden wenn detected_favicon_url ein lokaler Pfad ist (URL unverändert)
-        $isLocalPath = str_starts_with((string)$detected_favicon_url, '/');
+        $isLocalPath = str_starts_with((string)$detected_favicon_url, '/')
+                    || str_starts_with((string)$detected_favicon_url, 'favicons/');
         $needsDownload = false;
         $favicon_sources = [];
 
@@ -86,10 +87,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // Alte Favicon-Datei löschen wenn eine neue gespeichert wurde und Name sich unterscheidet
-        if ($new_favicon_path && $old_favicon) {
+        if ($new_favicon_path && $old_favicon && !str_starts_with($old_favicon, 'http')) {
             $old_file = ltrim($old_favicon, '/');
-            if ($old_file !== $new_favicon_path && file_exists($old_file)) {
-                @unlink($old_file);
+            if ($old_file !== $new_favicon_path) {
+                $old_file_path = __DIR__ . '/' . $old_file;
+                if (file_exists($old_file_path)) {
+                    @unlink($old_file_path);
+                }
             }
         }
 

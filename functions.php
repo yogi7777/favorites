@@ -93,34 +93,24 @@ function resolveActiveTab(array $tabs, string $requested): array {
 }
 
 /**
- * Normalisiert einen Favicon-Pfad auf einen absoluten Pfad
- * Konvertiert sowohl relative als auch absolute Pfade zu absoluten
- * 
+ * Normalisiert einen Favicon-Pfad auf einen relativen Pfad
+ * Externe URLs werden unverändert zurückgegeben, lokale Pfade werden relativ gemacht.
+ *
  * @param string $faviconUrl Der Favicon-URL oder -Pfad aus der Datenbank
- * @return string Der normalisierte absolute Pfad (z.B. /favicons/favicon_123.png)
+ * @return string Relativer Pfad (z.B. favicons/favicon_123.png) oder externe URL
  */
 function normalizeFaviconPath(string $faviconUrl): string {
     if (empty($faviconUrl)) {
         return '';
     }
 
-    // Prüfe, ob es eine vollständige URL ist (http/https)
+    // Externe URLs unverändert zurückgeben
     if (strpos($faviconUrl, 'http://') === 0 || strpos($faviconUrl, 'https://') === 0) {
         return $faviconUrl;
     }
 
-    // Prüfe, ob es bereits ein absoluter Pfad ist
-    if (strpos($faviconUrl, '/') === 0) {
-        return $faviconUrl;
-    }
-
-    // Konvertiere relative Pfade (favicons/favicon_123.png) zu absolut (/favicons/favicon_123.png)
-    if (strpos($faviconUrl, 'favicons/') === 0) {
-        return '/' . $faviconUrl;
-    }
-
-    // Fallback für andere Fälle
-    return '/' . $faviconUrl;
+    // Führende Slashes entfernen → immer relativer Pfad (funktioniert in jedem Unterordner)
+    return ltrim($faviconUrl, '/');
 }
 
 /**
@@ -236,5 +226,5 @@ function detectAndDownloadFavicon(string $pageUrl, int $id, string $preferredUrl
     }
 
     error_log("detectAndDownloadFavicon ($id): $bytes bytes → $path");
-    return '/' . $path;
+    return $path;
 }

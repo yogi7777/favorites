@@ -22,8 +22,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $favicons = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                 foreach ($favicons as $favicon) {
-                    if (!empty($favicon['favicon_url'])) {
-                        $file_path = __DIR__ . '/' . $favicon['favicon_url'];
+                    if (!empty($favicon['favicon_url']) && !str_starts_with($favicon['favicon_url'], 'http')) {
+                        $file_path = __DIR__ . '/' . ltrim($favicon['favicon_url'], '/');
                         if (file_exists($file_path)) {
                             unlink($file_path);
                         }

@@ -65,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
                 <div class="row">
                     <?php foreach ($orphanedFiles as $file): ?>
                         <div class="col-auto mb-3">
-                            <img src="/<?php echo htmlspecialchars(str_replace($_SERVER['DOCUMENT_ROOT'], '', $file)); ?>" 
+                            <img src="<?php echo htmlspecialchars(ltrim(str_replace(__DIR__, '', $file), '/')); ?>"
                                 alt="Favicon" 
                                 width="32" 
                                 height="32" 

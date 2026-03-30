@@ -16,9 +16,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt = $pdo->prepare("DELETE FROM favorites WHERE id = ? AND user_id = ?");
     $stmt->execute([$id, $user_id]);
 
-    // Favicon-Datei löschen, falls vorhanden
-    if ($favicon_path && file_exists($favicon_path)) {
-        unlink($favicon_path);
+    // Favicon-Datei löschen, falls vorhanden (nur lokale Pfade, nicht externe URLs)
+    if ($favicon_path && !str_starts_with($favicon_path, 'http')) {
+        $favicon_file = __DIR__ . '/' . ltrim($favicon_path, '/');
+        if (file_exists($favicon_file)) {
+            @unlink($favicon_file);
+        }
     }
 }
 ?>
