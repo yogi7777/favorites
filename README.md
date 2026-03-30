@@ -99,8 +99,9 @@ The stack starts three containers:
 **1. Clone the repository**
 
 ```bash
+cd /opt
 git clone https://github.com/yogi7777/favorites.git
-cd favorites
+cd /opt/favorites
 ```
 
 **2. (Optional) Customize ports and passwords**
