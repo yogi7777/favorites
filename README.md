@@ -150,6 +150,16 @@ The form is pre-filled with the Docker defaults — just click through, create y
 http://localhost:8080/
 ```
 
+**6. Update Repository**
+> **Note:** Whitout delete the Database.
+
+```bash
+docker stop favorites-web favorites-app
+docker rm favorites-web favorites-app
+git pull origin main
+docker compose up -d --build favorites-web favorites-app
+```
+
 ---
 
 ### Option B – Portainer (GUI)
