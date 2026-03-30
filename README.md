@@ -32,7 +32,7 @@ Use this method if you already have a LAMP/LEMP stack running — e.g. a shared 
 Either upload the files via FTP/SFTP, or clone the repository directly on the server:
 
 ```bash
-git clone https://github.com/yogi7777/favorites.git /var/www/html/favorites
+git clone https://github.com/yogi7777/favorites.git /var/www/html
 ```
 
 **2. Create a MySQL user (and optionally the database)**
@@ -99,8 +99,7 @@ The stack starts three containers:
 **1. Clone the repository**
 
 ```bash
-cd /opt
-git clone https://github.com/yogi7777/favorites.git
+git clone https://github.com/yogi7777/favorites.git /opt
 cd /opt/favorites
 ```
 
