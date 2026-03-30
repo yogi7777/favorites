@@ -99,7 +99,7 @@ The stack starts three containers:
 **1. Clone the repository**
 
 ```bash
-git clone https://github.com/yogi7777/favorites.git /opt
+git clone https://github.com/yogi7777/favorites.git /opt/favorites
 cd /opt/favorites
 ```
 
