@@ -396,6 +396,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Category card inline edit toggle (✏ in card header)
+    document.querySelectorAll('.cat-inline-edit-btn').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const card = btn.closest('.category');
+            if (card) card.classList.toggle('inline-editing');
+        });
+    });
+
     // Drag-and-Drop auf Kacheln
     window.allowDrop = function(event) {
         event.preventDefault();

@@ -48,6 +48,35 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // Inline edit: ✏ button toggles per-note editing in view mode
+    document.querySelectorAll('.note-inline-edit-btn').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const tile = btn.closest('.note-tile');
+            if (!tile) return;
+            tile.classList.add('inline-editing');
+            tile.querySelector('.note-edit-area')?.focus();
+        });
+    });
+
+    // Inline save: ✓ button saves content and returns to markdown view
+    document.querySelectorAll('.note-inline-save-btn').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const tile = btn.closest('.note-tile');
+            if (!tile) return;
+            saveNoteContent(tile);
+            const textarea = tile.querySelector('.note-edit-area');
+            const viewEl   = tile.querySelector('.note-view');
+            if (textarea && viewEl) {
+                viewEl.innerHTML = renderMarkdown(textarea.value);
+            }
+            tile.classList.remove('inline-editing');
+        });
+    });
+
     const container = document.getElementById('categories');
     if (!container) return;
 

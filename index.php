@@ -253,19 +253,20 @@ if ($activeTabSlug === 'alle') {
                             <div class="card category-card">
                                 <div class="card-header">
                                     <h5 class="card-title"><?php echo htmlspecialchars($category['name']); ?></h5>
+                                    <button class="btn cat-inline-edit-btn" title="Edit favorites">✏</button>
                                 </div>
                                 <div class="card-body">
                                     <?php $favoritesInCategory = $favoritesByCategory[(int)$category['id']] ?? []; ?>
                                     <?php foreach ($favoritesInCategory as $favorite): ?>
-                                        <div class="favorite" data-title="<?php echo htmlspecialchars($favorite['title']); ?>" <?php if ($mode === 'edit'): ?>data-id="<?php echo (int)$favorite['id']; ?>"<?php endif; ?>>
+                                        <div class="favorite" data-title="<?php echo htmlspecialchars($favorite['title']); ?>" data-id="<?php echo (int)$favorite['id']; ?>">
                                             <img src="<?php echo htmlspecialchars(normalizeFaviconPath($favorite['favicon_url'])); ?>" alt="Favicon" class="favicon">
                                             <a href="<?php echo htmlspecialchars($favorite['url']); ?>" target="_blank" data-bs-toggle="tooltip" data-bs-placement="right" title="<?php echo htmlspecialchars($favorite['url']); ?>">
                                                 <?php echo htmlspecialchars($favorite['title']); ?>
                                             </a>
-                                            <?php if ($mode === 'edit'): ?>
-                                                <button class="btn btn-sm btn-outline-primary edit-favorite ms-auto">Edit</button>
-                                                <button class="btn btn-sm btn-outline-danger delete-favorite ms-2">Delete</button>
-                                            <?php endif; ?>
+                                            <div class="inline-fav-btns ms-auto">
+                                                <button class="btn btn-sm edit-favorite" title="Edit">✏</button>
+                                                <button class="btn btn-sm delete-favorite" title="Delete">✕</button>
+                                            </div>
                                         </div>
                                     <?php endforeach; ?>
                                 </div>
@@ -284,6 +285,8 @@ if ($activeTabSlug === 'alle') {
                     <div class="card note-card">
                         <div class="card-header">
                             <h5 class="note-header-title"><?php echo htmlspecialchars($note['title']); ?></h5>
+                            <button class="btn note-inline-edit-btn" title="Edit note">✏</button>
+                            <button class="btn note-inline-save-btn" title="Save note">✓</button>
                             <?php if ($mode === 'edit'): ?>
                                 <button class="btn btn-sm btn-outline-danger delete-note" title="Delete note">✕</button>
                             <?php endif; ?>
@@ -352,8 +355,7 @@ if ($activeTabSlug === 'alle') {
         </div>
     </div>
 
-    <?php if ($mode === 'edit'): ?>
-        <div class="modal fade" id="editFavoriteModal" tabindex="-1">
+    <div class="modal fade" id="editFavoriteModal" tabindex="-1">
             <div class="modal-dialog">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -401,7 +403,6 @@ if ($activeTabSlug === 'alle') {
                 </div>
             </div>
         </div>
-    <?php endif; ?>
 
     <?php if ($mode === 'categories'): ?>
     <!-- editCategoryModal is now in categories.php -->

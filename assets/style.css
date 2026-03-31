@@ -670,3 +670,113 @@ body.edit-mode .note-view {
 .notes-management-section {
     margin-top: 2.5rem;
 }
+
+/* ================================================================
+   INLINE EDIT – Note tiles
+   ================================================================ */
+.note-inline-edit-btn,
+.note-inline-save-btn {
+    flex-shrink: 0;
+    padding: 1px 5px;
+    font-size: 0.78rem;
+    line-height: 1.4;
+    opacity: 0.25;
+    border: none;
+    background: none;
+    color: #d6dde8;
+    transition: opacity 0.15s;
+    cursor: pointer;
+}
+
+.note-inline-edit-btn:hover {
+    opacity: 0.9;
+    color: #fff;
+}
+
+.note-inline-save-btn {
+    display: none;
+    color: #6abf6a;
+    opacity: 0.85;
+}
+
+.note-tile.inline-editing .note-inline-edit-btn { display: none; }
+.note-tile.inline-editing .note-inline-save-btn { display: inline-flex; align-items: center; }
+.note-tile.inline-editing .note-edit-area       { display: block; }
+.note-tile.inline-editing .note-view            { display: none; }
+
+/* In full edit-mode the inline controls are redundant */
+body.edit-mode .note-inline-edit-btn,
+body.edit-mode .note-inline-save-btn { display: none; }
+
+/* ================================================================
+   INLINE EDIT – Category card header
+   ================================================================ */
+.category-card .card-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    text-align: left;
+    padding: calc(8px * var(--ui-zoom)) calc(12px * var(--ui-zoom));
+}
+
+.category-card .card-header .card-title {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cat-inline-edit-btn {
+    flex-shrink: 0;
+    padding: 1px 5px;
+    font-size: 0.78rem;
+    line-height: 1.4;
+    opacity: 0.25;
+    border: none;
+    background: none;
+    color: #d6dde8;
+    transition: opacity 0.15s;
+    cursor: pointer;
+}
+
+.cat-inline-edit-btn:hover,
+.category.inline-editing .cat-inline-edit-btn {
+    opacity: 1;
+    color: #7db3e0;
+}
+
+/* ================================================================
+   INLINE EDIT – Favorite action buttons
+   ================================================================ */
+.inline-fav-btns {
+    display: none;
+    align-items: center;
+    gap: 3px;
+    flex-shrink: 0;
+    align-self: center;
+}
+
+.category.inline-editing .inline-fav-btns,
+body.edit-mode .inline-fav-btns {
+    display: flex;
+}
+
+.inline-fav-btns .btn {
+    padding: 1px 5px;
+    font-size: 0.72rem;
+    line-height: 1.4;
+    opacity: 0.65;
+}
+
+.inline-fav-btns .btn:hover { opacity: 1; }
+
+.inline-fav-btns .edit-favorite {
+    color: #7db3e0;
+    border-color: #4a7aaa;
+}
+
+.inline-fav-btns .delete-favorite {
+    color: #e07d7d;
+    border-color: #aa4a4a;
+}
