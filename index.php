@@ -408,6 +408,97 @@ if ($activeTabSlug === 'alle') {
     <!-- editCategoryModal is now in categories.php -->
     <?php endif; ?>
 
+    <?php if ($mode === 'view'): ?>
+    <!-- Quick Add: Note -->
+    <div class="modal fade" id="quickNoteModal" tabindex="-1" aria-labelledby="quickNoteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="quickNoteModalLabel">New Note</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="quickNoteError" class="alert alert-warning d-none" role="alert"></div>
+                    <div class="mb-3">
+                        <label for="quickNoteTitle" class="form-label">Title</label>
+                        <input type="text" class="form-control" id="quickNoteTitle" placeholder="Note title" autocomplete="off">
+                    </div>
+                    <?php
+                    $nonDefaultTabs = array_filter($tabs, fn($t) => $t['slug'] !== 'alle');
+                    ?>
+                    <?php if (!empty($nonDefaultTabs)): ?>
+                    <div class="mb-3">
+                        <label class="form-label mb-1">Assign to tabs:</label>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <?php foreach ($nonDefaultTabs as $tab): ?>
+                                <label class="form-check form-check-inline">
+                                    <input class="form-check-input quick-note-tab" type="checkbox"
+                                           value="<?php echo (int)$tab['id']; ?>"
+                                           <?php echo ($activeTabSlug !== 'alle' && $activeTabSlug === $tab['slug']) ? 'checked' : ''; ?>>
+                                    <span class="form-check-label"><?php echo htmlspecialchars($tab['name']); ?></span>
+                                </label>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                    <?php else: ?>
+                    <div class="alert alert-info">
+                        Please <a href="tabs.php" class="alert-link">create a tab</a> first before adding notes.
+                    </div>
+                    <?php endif; ?>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveQuickNote"
+                        <?php echo empty($nonDefaultTabs) ? 'disabled' : ''; ?>>Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Add: Favorites Category -->
+    <div class="modal fade" id="quickCategoryModal" tabindex="-1" aria-labelledby="quickCategoryModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="quickCategoryModalLabel">New Favorites Category</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="quickCategoryError" class="alert alert-warning d-none" role="alert"></div>
+                    <div class="mb-3">
+                        <label for="quickCategoryName" class="form-label">Category Name</label>
+                        <input type="text" class="form-control" id="quickCategoryName" placeholder="Category name" autocomplete="off">
+                    </div>
+                    <?php if (!empty($nonDefaultTabs)): ?>
+                    <div class="mb-3">
+                        <label class="form-label mb-1">Assign to tabs:</label>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <?php foreach ($nonDefaultTabs as $tab): ?>
+                                <label class="form-check form-check-inline">
+                                    <input class="form-check-input quick-cat-tab" type="checkbox"
+                                           value="<?php echo (int)$tab['id']; ?>"
+                                           <?php echo ($activeTabSlug !== 'alle' && $activeTabSlug === $tab['slug']) ? 'checked' : ''; ?>>
+                                    <span class="form-check-label"><?php echo htmlspecialchars($tab['name']); ?></span>
+                                </label>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                    <?php else: ?>
+                    <div class="alert alert-info">
+                        Please <a href="tabs.php" class="alert-link">create a tab</a> first before adding categories.
+                    </div>
+                    <?php endif; ?>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveQuickCategory"
+                        <?php echo empty($nonDefaultTabs) ? 'disabled' : ''; ?>>Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+
     <?php include 'navigation.php'; ?>
 
     <script>
@@ -419,6 +510,65 @@ if ($activeTabSlug === 'alle') {
     <script src="assets/notes.js?v1.5"></script>
     <?php if ($mode === 'edit'): ?>
         <script src="assets/sort.js?v1.7"></script>
+    <?php endif; ?>
+    <?php if ($mode === 'view'): ?>
+    <script>
+    (function () {
+        function quickSave(action, nameId, tabSelector, errorId, btnId) {
+            const btn     = document.getElementById(btnId);
+            const errorEl = document.getElementById(errorId);
+            if (!btn) return;
+            btn.addEventListener('click', function () {
+                const name = document.getElementById(nameId).value.trim();
+                const tabs = [...document.querySelectorAll(tabSelector + ':checked')].map(cb => cb.value);
+                errorEl.classList.add('d-none');
+                if (!name) {
+                    errorEl.textContent = 'Please enter a name.';
+                    errorEl.classList.remove('d-none');
+                    return;
+                }
+                if (tabs.length === 0) {
+                    errorEl.textContent = 'Please select at least one tab.';
+                    errorEl.classList.remove('d-none');
+                    return;
+                }
+                btn.disabled = true;
+                const body = new URLSearchParams({ action, name });
+                const tabKey = action === 'add_note' ? 'note_tabs[]' : 'cat_tabs[]';
+                tabs.forEach(t => body.append(tabKey, t));
+                fetch('quick_add.php', { method: 'POST', body })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            location.reload();
+                        } else {
+                            errorEl.textContent = data.error ?? 'An error occurred.';
+                            errorEl.classList.remove('d-none');
+                            btn.disabled = false;
+                        }
+                    })
+                    .catch(() => {
+                        errorEl.textContent = 'Network error. Please try again.';
+                        errorEl.classList.remove('d-none');
+                        btn.disabled = false;
+                    });
+            });
+        }
+
+        quickSave('add_note',     'quickNoteTitle',    '.quick-note-tab', 'quickNoteError',     'saveQuickNote');
+        quickSave('add_category', 'quickCategoryName', '.quick-cat-tab',  'quickCategoryError', 'saveQuickCategory');
+
+        // Reset modal state on close
+        ['quickNoteModal', 'quickCategoryModal'].forEach(function (id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.addEventListener('hidden.bs.modal', function () {
+                el.querySelectorAll('input[type="text"]').forEach(function (i) { i.value = ''; });
+                el.querySelectorAll('.alert').forEach(function (a) { a.classList.add('d-none'); });
+            });
+        });
+    })();
+    </script>
     <?php endif; ?>
 </body>
 </html>

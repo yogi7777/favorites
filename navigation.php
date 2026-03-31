@@ -28,6 +28,23 @@ $currentTab = $_GET['tab'] ?? 'alle';
                     </li>
                 <?php endif; ?>
 
+                <?php if ($mode === 'view'): ?>
+                    <li class="nav-item">
+                        <button type="button"
+                                class="nav-link btn btn-secondary bottom-nav-btn bottom-nav-icon-btn"
+                                data-bs-toggle="modal"
+                                data-bs-target="#quickNoteModal"
+                                title="New Note">📝</button>
+                    </li>
+                    <li class="nav-item">
+                        <button type="button"
+                                class="nav-link btn btn-secondary bottom-nav-btn bottom-nav-icon-btn"
+                                data-bs-toggle="modal"
+                                data-bs-target="#quickCategoryModal"
+                                title="New Category">📁</button>
+                    </li>
+                <?php endif; ?>
+
                 <li class="nav-item">
                     <a class="nav-link btn btn-secondary bottom-nav-btn" href="<?php echo ($mode === 'view' && $currentTab === 'alle') ? ('categories.php?tab=' . urlencode($currentTab)) : ('index.php?mode=' . ($mode === 'view' ? 'edit' : 'view') . '&tab=' . urlencode($currentTab)); ?>">
                         <span class="d-none d-sm-inline"><?php echo $mode === 'view' ? 'Edit' : 'Back'; ?></span>
