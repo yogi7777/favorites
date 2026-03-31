@@ -158,6 +158,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <button type="submit" form="save-all-tabs-form" name="save_all_tabs" class="btn btn-primary">Speichern</button>
                 </div>
 
+                <p>Du brauchst als erstes min. 1 Tab, damit du Kategorien und Favoriten anlegen kannst. Der Tab "Alle" ist ein Systemtab und kann nicht gelöscht werden. Er zeigt alle Favoriten an, die keinem anderen Tab zugeordnet sind. Tabs können per Drag & Drop sortiert werden.</p>
+
                 <form method="POST" class="mb-4 row g-2">
                     <div class="col-md-8 col-12">
                         <input type="text" name="name" class="form-control" placeholder="Tab Name" required>

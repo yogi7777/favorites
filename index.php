@@ -227,7 +227,7 @@ if ($activeTabSlug === 'alle') {
                         </li>
                     <?php endif; ?>
                     <li class="nav-item">
-                        <a class="nav-link <?php echo $activeTabSlug === 'alle' ? 'active' : ''; ?>" href="categories.php?tab=<?php echo urlencode($activeTabSlug); ?>">Favorite Categories</a>
+                        <a class="nav-link <?php echo $activeTabSlug === 'alle' ? 'active' : ''; ?>" href="categories.php?tab=<?php echo urlencode($activeTabSlug); ?>">Alle</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="tabs.php?tab=<?php echo urlencode($activeTabSlug); ?>">Tabs</a>
