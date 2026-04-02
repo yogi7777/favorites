@@ -397,12 +397,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Category card inline edit toggle (✏ in card header)
-    document.querySelectorAll('.cat-inline-edit-btn').forEach((btn) => {
+    document.querySelectorAll('.cat-inline-edit-btn:not(.cat-open-all-btn)').forEach((btn) => {
         btn.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
             const card = btn.closest('.category');
             if (card) card.classList.toggle('inline-editing');
+        });
+    });
+
+    // Open all links in a category card
+    document.querySelectorAll('.cat-open-all-btn').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const card = btn.closest('.category');
+            if (!card) return;
+            card.querySelectorAll('.card-body .favorite a').forEach((a) => {
+                window.open(a.href, '_blank');
+            });
         });
     });
 

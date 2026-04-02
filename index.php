@@ -253,6 +253,7 @@ if ($activeTabSlug === 'alle') {
                             <div class="card category-card">
                                 <div class="card-header">
                                     <h5 class="card-title"><?php echo htmlspecialchars($category['name']); ?></h5>
+                                    <button class="btn cat-inline-edit-btn cat-open-all-btn" title="Open all links">⧉</button>
                                     <button class="btn cat-inline-edit-btn" title="Edit favorites">✏</button>
                                 </div>
                                 <div class="card-body">
