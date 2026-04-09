@@ -10,7 +10,17 @@ if ($_SESSION['user_id'] != 1) {
 
 $users = $pdo->query("SELECT * FROM users")->fetchAll(PDO::FETCH_ASSOC);
 
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $csrf_token = $_POST['csrf_token'] ?? '';
+    if ($csrf_token !== ($_SESSION['csrf_token'] ?? '')) {
+        http_response_code(403);
+        die('CSRF validation failed.');
+    }
+
     try {
         if (isset($_POST['add_user'])) {
             $username = $_POST['username'] ?? '';
@@ -77,6 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="row mx-auto col-md-12">
             <h2>Users</h2>
             <form method="POST" class="mb-4">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                 <div class="row g-3">
                     <div class="col-md-4 col-12">
                         <input type="text" name="username" class="form-control" placeholder="Username" required>
@@ -106,6 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <td>
                                     <button class="btn btn-sm btn-outline-warning edit-user" data-id="<?php echo $user['id']; ?>" data-username="<?php echo htmlspecialchars($user['username']); ?>">Edit</button>
                                     <form method="POST" style="display:inline;">
+                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                                         <input type="hidden" name="id" value="<?php echo $user['id']; ?>">
                                         <button type="submit" name="delete_user" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure? This will delete all user data (favorites and categories).');">Delete</button>
                                     </form>
@@ -128,6 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <form method="POST">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                     <div class="modal-body">
                         <div class="mb-3">
                             <label for="edit_username" class="form-label">Username</label>
