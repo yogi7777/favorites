@@ -46,7 +46,7 @@ function checkFaviconUrl(string $url): bool {
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_USERAGENT      => 'Mozilla/5.0',
+        CURLOPT_USERAGENT      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         CURLOPT_TIMEOUT        => 3,
         CURLOPT_SSL_VERIFYPEER => false,
         CURLOPT_NOBODY         => true,
@@ -62,7 +62,7 @@ function checkFaviconUrl(string $url): bool {
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_USERAGENT      => 'Mozilla/5.0',
+            CURLOPT_USERAGENT      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             CURLOPT_TIMEOUT        => 3,
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_RANGE          => '0-511', // nur erste 512 Bytes
@@ -97,14 +97,21 @@ if (!$faviconUrl) {
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_USERAGENT      => 'Mozilla/5.0',
+        CURLOPT_USERAGENT      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         CURLOPT_TIMEOUT        => 5,
         CURLOPT_SSL_VERIFYPEER => false,
         CURLOPT_MAXREDIRS      => 5,
+        CURLOPT_ENCODING       => '',
     ]);
     $html = curl_exec($ch);
     curl_close($ch);
 
+    if (!empty($html) && strpos($html, "\x1f\x8b") === 0) {
+        $decoded = @gzdecode($html);
+        if ($decoded !== false) {
+            $html = $decoded;
+        }
+    }
     if ($html) {
         $patterns = [
             '/<link[^>]+rel=["\']apple-touch-icon["\'][^>]+href=["\']([^"\']+)["\'][^>]*>/i',

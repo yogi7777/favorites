@@ -138,11 +138,21 @@ function detectAndDownloadFavicon(string $pageUrl, int $id, string $preferredUrl
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_TIMEOUT        => 5,
             CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_USERAGENT      => 'Mozilla/5.0',
+            CURLOPT_USERAGENT      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            CURLOPT_ENCODING       => '',
         ]);
         $data        = curl_exec($ch);
         $contentType = (string)curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
         curl_close($ch);
+        
+        // Entpacke gzip, falls curl es nicht selbst tut
+        if (!empty($data) && strpos($data, "\x1f\x8b") === 0) {
+            $decoded = @gzdecode($data);
+            if ($decoded !== false) {
+                $data = $decoded;
+            }
+        }
+        
         if (!$data || strlen($data) < 100 || !str_contains($contentType, 'image/')) return null;
         return ['data' => $data, 'type' => $contentType];
     };
@@ -167,11 +177,19 @@ function detectAndDownloadFavicon(string $pageUrl, int $id, string $preferredUrl
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_TIMEOUT        => 5,
             CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_USERAGENT      => 'Mozilla/5.0',
+            CURLOPT_USERAGENT      => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             CURLOPT_MAXREDIRS      => 5,
+            CURLOPT_ENCODING       => '',
         ]);
         $html = curl_exec($ch);
         curl_close($ch);
+        
+        if (!empty($html) && strpos($html, "\x1f\x8b") === 0) {
+            $decoded = @gzdecode($html);
+            if ($decoded !== false) {
+                $html = $decoded;
+            }
+        }
 
         if ($html) {
             $patterns = [
