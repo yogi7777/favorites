@@ -3,6 +3,7 @@ require_once 'config.php';
 require_once 'auth.php';
 require_once __DIR__ . '/functions.php';
 checkAuth();
+verifyCsrfRequest();
 
 header('Content-Type: application/json');
 

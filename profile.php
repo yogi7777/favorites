@@ -3,16 +3,12 @@ require_once 'config.php';
 require_once 'auth.php';
 require_once 'import-export.php';
 checkAuth();
+verifyCsrfRequest();
 
 $user_id = $_SESSION['user_id'];
 $message = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // CSRF-Token prüfen
-    $csrf_token = $_POST['csrf_token'] ?? '';
-    if ($csrf_token !== $_SESSION['csrf_token']) {
-        $message = 'CSRF-Fehler.';
-    } else {
         // Profil löschen
         if (isset($_POST['action']) && $_POST['action'] === 'delete_profile') {
             try {
@@ -151,12 +147,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
             }
-        }
     }
 }
 
-// CSRF-Token generieren
-$_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+
 
 // Aktuellen Benutzernamen abrufen
 $stmt = $pdo->prepare("SELECT username FROM users WHERE id = ?");
@@ -169,6 +163,7 @@ $devices = getTrustedDevices($user_id);
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta name="csrf-token" content="<?php echo htmlspecialchars(generateCsrfToken()); ?>">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="author" content="yogi7777">
@@ -187,7 +182,7 @@ $devices = getTrustedDevices($user_id);
             <!-- Profil bearbeiten -->
             <h2>Edit Profil</h2>
             <form method="POST" class="mb-4">
-                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCsrfToken()); ?>">
                 <div class="mb-3">
                     <label for="username" class="form-label">Username (Email)</label>
                     <input type="email" name="username" id="username" class="form-control" value="<?php echo htmlspecialchars($current_username); ?>" required>
@@ -229,7 +224,7 @@ $devices = getTrustedDevices($user_id);
                                     <td><?php echo htmlspecialchars(date('d.m.Y H:i', strtotime($device['expires_at']))); ?></td>
                                     <td>
                                         <form method="POST" style="display:inline;">
-                                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCsrfToken()); ?>">
                                             <button type="submit" name="revoke_device" value="<?php echo $device['id']; ?>" class="btn btn-danger btn-sm">Revoke</button>
                                         </form>
                                     </td>
@@ -238,7 +233,7 @@ $devices = getTrustedDevices($user_id);
                         </tbody>
                     </table>
                     <form method="POST">
-                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCsrfToken()); ?>">
                         <button type="submit" name="revoke_all_devices" class="btn btn-warning">All Deviceses revoke</button>
                     </form>
                 </div>
@@ -255,13 +250,13 @@ $devices = getTrustedDevices($user_id);
                         <p>Export your favorites, categories and tabs for a backup or for use in your browser.</p>
                         <div class="d-flex gap-2">
                             <form method="POST" class="me-2">
-                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCsrfToken()); ?>">
                                 <button type="submit" name="export_data" class="btn btn-success">
                                     <i class="bi bi-download"></i> JSON export
                                 </button>
                             </form>
                             <form method="POST">
-                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCsrfToken()); ?>">
                                 <button type="submit" name="browser_export" class="btn btn-primary">
                                     <i class="bi bi-bookmark"></i> Browser-Favorites export
                                 </button>
@@ -285,7 +280,7 @@ $devices = getTrustedDevices($user_id);
                     <div class="card-body">
                         <p>Import previously exported favorites, categories and tabs.</p>
                         <form method="POST" enctype="multipart/form-data">
-                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCsrfToken()); ?>">
                             <div class="mb-3">
                                 <label for="import_file" class="form-label">Select JSON-File</label>
                                 <input type="file" name="import_file" id="import_file" class="form-control" accept=".json" required>
@@ -320,7 +315,7 @@ $devices = getTrustedDevices($user_id);
                     <div class="card-body">
                         <p>Aktualisiere alle Favicons deiner vorhandenen Favoriten ohne Import.</p>
                         <form method="POST" id="refreshFaviconsForm">
-                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCsrfToken()); ?>">
                             <button type="submit" id="refreshFaviconsBtn" name="refresh_favicons" class="btn btn-outline-warning">
                                 <span id="refreshFaviconsSpinner" class="spinner-border spinner-border-sm me-2 d-none" role="status" aria-hidden="true"></span>
                                 <span id="refreshFaviconsBtnLabel">Alle Favicons aktualisieren</span>
@@ -373,7 +368,7 @@ $devices = getTrustedDevices($user_id);
                         </div>
                         <div class="modal-footer">
                             <form method="POST">
-                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCsrfToken()); ?>">
                                 <input type="hidden" name="action" value="delete_profile">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                                 <button type="submit" class="btn btn-danger">Delete Profil</button>

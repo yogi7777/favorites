@@ -78,7 +78,7 @@ function attachFreeDrag(container, tabId) {
             var tid    = dragged.dataset.tabId || tabId;
             fetch('notes.php', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' },
                 body: 'action=update_position&id=' + encodeURIComponent(noteId) +
                       '&tab_id=' + encodeURIComponent(tid) +
                       '&pos_x=' + x + '&pos_y=' + y
@@ -87,7 +87,7 @@ function attachFreeDrag(container, tabId) {
             var catId = dragged.dataset.categoryId;
             fetch('notes.php', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' },
                 body: 'action=update_cat_position&cat_id=' + encodeURIComponent(catId) +
                       '&tab_id=' + encodeURIComponent(tabId) +
                       '&pos_x=' + x + '&pos_y=' + y
@@ -166,7 +166,7 @@ function saveCategoryOrder(container, tabSlug) {
 
     fetch('update_positions.php', {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' },
         body:    JSON.stringify(order)
     }).catch(function(err) { console.error('Error saving order:', err); });
 }
@@ -184,7 +184,7 @@ function saveNoteOrder(container) {
 
     fetch('notes.php', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' },
         body: 'action=update_grid_positions&data=' + encodeURIComponent(JSON.stringify(order))
     }).catch(function(err) { console.error('Error saving note order:', err); });
 }

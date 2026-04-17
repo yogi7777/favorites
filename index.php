@@ -164,6 +164,7 @@ if ($activeTabSlug === 'alle') {
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta name="csrf-token" content="<?php echo htmlspecialchars(generateCsrfToken()); ?>">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="author" content="yogi7777">
@@ -537,7 +538,7 @@ if ($activeTabSlug === 'alle') {
                 const body = new URLSearchParams({ action, name });
                 const tabKey = action === 'add_note' ? 'note_tabs[]' : 'cat_tabs[]';
                 tabs.forEach(t => body.append(tabKey, t));
-                fetch('quick_add.php', { method: 'POST', body })
+                fetch('quick_add.php', { method: 'POST', headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' }, body })
                     .then(r => r.json())
                     .then(data => {
                         if (data.success) {

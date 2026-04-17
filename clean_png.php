@@ -2,6 +2,7 @@
 require_once 'config.php';
 require_once 'auth.php';
 checkAuth();
+verifyCsrfRequest();
 
 // Verzeichnis mit den Favicons
 $faviconsDir = __DIR__ . '/favicons/';
@@ -42,6 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
 <!DOCTYPE html>
 <html lang="de">
 <head>
+    <meta name="csrf-token" content="<?php echo htmlspecialchars(generateCsrfToken()); ?>">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="author" content="yogi7777">
@@ -76,6 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
                 </div>
                 
                 <form method="post" onsubmit="return confirm('Do you want to delete all the favicons listed?');">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCsrfToken()); ?>">
                     <button type="submit" name="delete" class="btn btn-danger">Delete All</button>
                 </form>
             <?php endif; ?>

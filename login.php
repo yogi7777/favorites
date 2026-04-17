@@ -44,19 +44,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $remember = isset($_POST['remember']);
     $device_name = $_POST['device_name'] ?? ''; // Gerätename aus Formular
 
-    if ($csrf_token === $_SESSION['csrf_token'] && login($username, $password, $remember, $device_name)) {
+    if ($csrf_token === generateCsrfToken() && login($username, $password, $remember, $device_name)) {
         header('Location: index.php');
         exit;
     } else {
         $error = "Ungültige Anmeldedaten oder CSRF-Fehler.";
     }
 }
-
-$_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta name="csrf-token" content="<?php echo htmlspecialchars(generateCsrfToken()); ?>">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="author" content="yogi7777">
@@ -69,7 +68,7 @@ $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
         <h1>Login</h1>
         <?php if (isset($error)) echo "<p class='text-danger'>$error</p>"; ?>
         <form method="POST">
-            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCsrfToken()); ?>">
             <div class="mb-3">
                 <label for="username" class="form-label">Username</label>
                 <input type="text" class="form-control" id="username" name="username" required>

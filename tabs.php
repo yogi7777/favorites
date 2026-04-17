@@ -3,6 +3,7 @@ require_once 'config.php';
 require_once 'auth.php';
 require_once 'functions.php';
 checkAuth();
+verifyCsrfRequest();
 
 $userId = (int)$_SESSION['user_id'];
 ensureDefaultTab($pdo, $userId);
@@ -95,6 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <!DOCTYPE html>
 <html lang="de">
 <head>
+    <meta name="csrf-token" content="<?php echo htmlspecialchars(generateCsrfToken()); ?>">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="author" content="yogi7777">
@@ -148,6 +150,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php foreach ($tabs as $tab): ?>
                     <?php if ($tab['slug'] !== 'alle'): ?>
                         <form method="POST" id="delete-tab-<?php echo (int)$tab['id']; ?>" style="display:none;">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCsrfToken()); ?>">
                             <input type="hidden" name="id" value="<?php echo (int)$tab['id']; ?>">
                         </form>
                     <?php endif; ?>
@@ -161,6 +164,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <p>Du brauchst als erstes min. 1 Tab, damit du Kategorien und Favoriten anlegen kannst. Der Tab "Alle" ist ein Systemtab und kann nicht gelöscht werden. Er zeigt alle Favoriten an, die keinem anderen Tab zugeordnet sind. Tabs können per Drag & Drop sortiert werden.</p>
 
                 <form method="POST" class="mb-4 row g-2">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCsrfToken()); ?>">
                     <div class="col-md-8 col-12">
                         <input type="text" name="name" class="form-control" placeholder="Tab Name" required>
                     </div>
@@ -170,6 +174,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </form>
 
                 <form method="POST" id="save-all-tabs-form">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCsrfToken()); ?>">
                     <div class="table-responsive">
                         <table class="table table-dark align-middle">
                             <thead>

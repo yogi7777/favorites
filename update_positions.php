@@ -2,6 +2,7 @@
 require_once 'config.php';
 require_once 'auth.php';
 checkAuth();
+verifyCsrfRequest();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $user_id = $_SESSION['user_id'];

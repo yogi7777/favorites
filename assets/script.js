@@ -171,7 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
             fetch('save_favorite.php', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' },
                 body: `title=${encodeURIComponent(title)}&category=${encodeURIComponent(category)}&url=${encodeURIComponent(url)}&favicon_url=${encodeURIComponent(favicon_url)}&detected_favicon_url=${encodeURIComponent(detected_favicon_url)}`
             })
                 .then(response => {
@@ -263,7 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     fetch('delete_favorite.php', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' },
                         body: `id=${id}`
                     })
                     .then(response => {
@@ -345,7 +345,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
                 fetch('edit_favorite.php', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' },
                     body: `id=${encodeURIComponent(id)}&title=${encodeURIComponent(title)}&category=${encodeURIComponent(category)}&url=${encodeURIComponent(url)}&favicon_url=${encodeURIComponent(favicon_url)}&detected_favicon_url=${encodeURIComponent(detected_favicon_url)}`
                 })
                     .then(response => {
@@ -388,7 +388,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const id = btn.dataset.id;
                     fetch('delete_category.php', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' },
                         body: `id=${id}`
                     }).then(() => location.reload());
                 }

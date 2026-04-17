@@ -3,6 +3,7 @@ require_once 'config.php';
 require_once 'auth.php';
 require_once 'functions.php';
 checkAuth();
+verifyCsrfRequest();
 
 $userId = (int)$_SESSION['user_id'];
 ensureDefaultTab($pdo, $userId);
@@ -169,6 +170,7 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta name="csrf-token" content="<?php echo htmlspecialchars(generateCsrfToken()); ?>">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="author" content="yogi7777">
@@ -226,6 +228,7 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
                     <div class="alert alert-warning" role="alert"><?php echo htmlspecialchars($addNoteError); ?></div>
                 <?php endif; ?>
                 <form method="POST" class="mb-4" id="add-note-form">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCsrfToken()); ?>">
                     <div class="row g-3">
                         <div class="col-md-8 col-12">
                             <input type="text" name="name" class="form-control" placeholder="Note title" required>
@@ -256,6 +259,7 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
                 </div>
                 <div class="table-responsive">
                     <form method="POST" id="save-all-notes-form">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCsrfToken()); ?>">
                     <table class="table table-dark">
                         <thead>
                             <tr>

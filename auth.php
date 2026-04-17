@@ -1,9 +1,35 @@
 <?php
+// Session-Cookie härten, bevor die Session gestartet wird
+session_set_cookie_params([
+    'secure' => true,
+    'httponly' => true,
+    'samesite' => 'Lax' // Lax erlaubt normale Navigation von extern, Strict ist noch sicherer
+]);
 session_start();
 
-// Funktion zur Generierung eines sicheren Tokens
+// Funktion zur Generierung eines sicheren Tokens (z. B. für Remember Me)
 function generateToken($length = 64) {
     return bin2hex(random_bytes($length / 2));
+}
+
+// Funktion zur Generierung des CSRF Tokens
+function generateCsrfToken() {
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+// Funktion zur Verifizierung des CSRF Tokens bei POST Requests
+function verifyCsrfRequest() {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        // Token kann entweder im POST-Body oder als Header gesendet werden
+        $token = $_POST['csrf_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+        if (empty($token) || empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $token)) {
+            header('HTTP/1.1 403 Forbidden');
+            die(json_encode(['success' => false, 'error' => 'CSRF token validation failed.']));
+        }
+    }
 }
 
 // Funktion zur Prüfung der Authentifizierung
@@ -50,6 +76,9 @@ function login($username, $password, $remember = false, $device_name = '') {
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($user && password_verify($password, $user['password_hash'])) {
+        // Session-ID neu generieren, um Session Fixation zu verhindern
+        session_regenerate_id(true);
+
         // Session setzen
         $_SESSION['user_id'] = $user['id'];
 

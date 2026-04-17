@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             fetch('notes.php', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' },
                 body: 'action=delete&id=' + encodeURIComponent(id)
             })
                 .then((r) => r.json())
@@ -254,7 +254,7 @@ function addResizeHandle(tile, tabId, container) {
 
             fetch('notes.php', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' },
                 body:
                     'action=update_position&id=' +
                     encodeURIComponent(id) +
@@ -279,7 +279,7 @@ function saveNoteContent(tile) {
 
     fetch('notes.php', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || '' },
         body:
             'action=update_content' +
             '&id=' +
