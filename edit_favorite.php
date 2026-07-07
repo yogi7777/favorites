@@ -47,6 +47,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
+    // Custom-URL angegeben, aber unsicher (SSRF-Filter) → sofort abbrechen, nichts speichern
+    if ($favicon_url && !isSafeFaviconUrl($favicon_url)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Custom-Favicon-URL ist nicht erlaubt (ungültiges Schema oder interne Adresse).']);
+        exit;
+    }
+
     try {
         // Bestehendes Favicon abrufen
         $stmt = $pdo->prepare("SELECT favicon_url FROM favorites WHERE id = ? AND user_id = ?");
@@ -56,38 +63,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $favicon_stored = $old_favicon; // Standardmässig altes Favicon behalten
         $new_favicon_path = null;
 
-        // Favicon nur neu laden wenn:
-        // (a) Benutzer eine eigene URL angegeben hat, ODER
-        // (b) Eine neue Remote-URL erkannt wurde (URL wurde im Modal geändert)
-        // NICHT neu laden wenn detected_favicon_url ein lokaler Pfad ist (URL unverändert)
-        $isLocalPath = str_starts_with((string)$detected_favicon_url, '/')
-                    || str_starts_with((string)$detected_favicon_url, 'favicons/');
-        $needsDownload = false;
-        $favicon_sources = [];
-
-        if ($favicon_url && isSafeFaviconUrl($favicon_url)) {
-            // Benutzer hat explizit eine Custom-URL eingegeben
-            $favicon_sources[] = $favicon_url;
-            $needsDownload = true;
-        } elseif (!$isLocalPath && $detected_favicon_url && isSafeFaviconUrl($detected_favicon_url)) {
-            // URL wurde geändert → neue Remote-URL erkannt
-            $favicon_sources[] = $detected_favicon_url;
-            $needsDownload = true;
-        }
-        // sonst: URL unverändert → vorhandenes lokales Favicon behalten
-
-        $favicon_warning = null;
-        if ($needsDownload) {
-            $preferred = $favicon_sources[0] ?? '';
-            // Google-API-URL NICHT als preferred übergeben – lieber echtes favicon.ico direkt versuchen
-            if (str_contains($preferred, 'google.com/s2/favicons')) $preferred = '';
-            $local_favicon = detectAndDownloadFavicon($url, $id, $preferred);
-            if ($local_favicon) {
-                $new_favicon_path = ltrim($local_favicon, '/');
-                $favicon_stored   = $local_favicon;
-            } elseif ($favicon_url) {
-                // Custom-URL wurde explizit angegeben, konnte aber nicht geladen werden
-                $favicon_warning = 'Custom-Favicon-URL konnte nicht geladen werden (nicht erreichbar oder kein gültiges Bild). Das bisherige Icon wurde beibehalten.';
+        if ($favicon_url) {
+            // Benutzer hat explizit eine Custom-URL eingegeben: NUR diese versuchen,
+            // kein automatischer Fallback (z.B. Google) – schlägt sie fehl, brechen wir ab,
+            // damit der Benutzer die URL korrigieren oder leeren und erneut speichern kann.
+            $local_favicon = downloadFaviconFromUrl($favicon_url, $id);
+            if (!$local_favicon) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Custom-Favicon-URL konnte nicht geladen werden (nicht erreichbar oder kein gültiges Bild). Bitte URL korrigieren oder Feld leeren und erneut speichern.']);
+                exit;
+            }
+            $new_favicon_path = ltrim($local_favicon, '/');
+            $favicon_stored   = $local_favicon;
+        } else {
+            // Keine Custom-URL: Favicon nur neu laden, wenn eine neue Remote-URL erkannt wurde
+            // (URL wurde im Modal geändert). NICHT neu laden wenn detected_favicon_url ein
+            // lokaler Pfad ist (URL unverändert).
+            $isLocalPath = str_starts_with((string)$detected_favicon_url, '/')
+                        || str_starts_with((string)$detected_favicon_url, 'favicons/');
+            if (!$isLocalPath && $detected_favicon_url && isSafeFaviconUrl($detected_favicon_url)) {
+                $preferred = str_contains($detected_favicon_url, 'google.com/s2/favicons') ? '' : $detected_favicon_url;
+                $local_favicon = detectAndDownloadFavicon($url, $id, $preferred);
+                if ($local_favicon) {
+                    $new_favicon_path = ltrim($local_favicon, '/');
+                    $favicon_stored   = $local_favicon;
+                }
             }
         }
 
@@ -108,11 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Erfolg, auch wenn keine Zeilen aktualisiert wurden (z. B. gleiche Werte)
         http_response_code(200);
-        $response = ['success' => 'Favorit erfolgreich aktualisiert.'];
-        if ($favicon_warning) {
-            $response['warning'] = $favicon_warning;
-        }
-        echo json_encode($response);
+        echo json_encode(['success' => 'Favorit erfolgreich aktualisiert.']);
     } catch (PDOException $e) {
         error_log("Datenbankfehler: " . $e->getMessage());
         http_response_code(500);
