@@ -76,6 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         // sonst: URL unverändert → vorhandenes lokales Favicon behalten
 
+        $favicon_warning = null;
         if ($needsDownload) {
             $preferred = $favicon_sources[0] ?? '';
             // Google-API-URL NICHT als preferred übergeben – lieber echtes favicon.ico direkt versuchen
@@ -84,6 +85,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($local_favicon) {
                 $new_favicon_path = ltrim($local_favicon, '/');
                 $favicon_stored   = $local_favicon;
+            } elseif ($favicon_url) {
+                // Custom-URL wurde explizit angegeben, konnte aber nicht geladen werden
+                $favicon_warning = 'Custom-Favicon-URL konnte nicht geladen werden (nicht erreichbar oder kein gültiges Bild). Das bisherige Icon wurde beibehalten.';
             }
         }
 
@@ -104,7 +108,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Erfolg, auch wenn keine Zeilen aktualisiert wurden (z. B. gleiche Werte)
         http_response_code(200);
-        echo json_encode(['success' => 'Favorit erfolgreich aktualisiert.']);
+        $response = ['success' => 'Favorit erfolgreich aktualisiert.'];
+        if ($favicon_warning) {
+            $response['warning'] = $favicon_warning;
+        }
+        echo json_encode($response);
     } catch (PDOException $e) {
         error_log("Datenbankfehler: " . $e->getMessage());
         http_response_code(500);

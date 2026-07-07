@@ -142,9 +142,11 @@ function detectAndDownloadFavicon(string $pageUrl, int $id, string $preferredUrl
             CURLOPT_ENCODING       => '',
         ]);
         $data        = curl_exec($ch);
+        $curlError   = curl_error($ch);
+        $httpCode    = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $contentType = (string)curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
         curl_close($ch);
-        
+
         // Entpacke gzip, falls curl es nicht selbst tut
         if (!empty($data) && strpos($data, "\x1f\x8b") === 0) {
             $decoded = @gzdecode($data);
@@ -152,8 +154,11 @@ function detectAndDownloadFavicon(string $pageUrl, int $id, string $preferredUrl
                 $data = $decoded;
             }
         }
-        
-        if (!$data || strlen($data) < 100 || !str_contains($contentType, 'image/')) return null;
+
+        if (!$data || strlen($data) < 100 || !str_contains($contentType, 'image/')) {
+            error_log("detectAndDownloadFavicon: fetchImage fehlgeschlagen für $src (HTTP $httpCode, Content-Type: $contentType, curl: $curlError)");
+            return null;
+        }
         return ['data' => $data, 'type' => $contentType];
     };
 

@@ -358,6 +358,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (data.error) {
                             alert('Fehler: ' + data.error);
                         } else {
+                            if (data.warning) {
+                                alert(data.warning);
+                            }
                             modal.hide();
                             location.reload();
                         }
