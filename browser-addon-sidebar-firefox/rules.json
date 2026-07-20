@@ -1,0 +1,39 @@
+[
+  {
+    "id": 1,
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "responseHeaders": [
+        { "header": "x-frame-options", "operation": "remove" },
+        { "header": "frame-options", "operation": "remove" },
+        { "header": "content-security-policy", "operation": "remove" },
+        { "header": "content-security-policy-report-only", "operation": "remove" },
+        { "header": "x-content-security-policy", "operation": "remove" },
+        { "header": "strict-transport-security", "operation": "remove" },
+        { "header": "referrer-policy", "operation": "remove" }
+      ]
+    },
+    "condition": {
+      "urlFilter": "||your-url.ch",
+      "resourceTypes": ["main_frame", "sub_frame"]
+    }
+  },
+  {
+    "id": 2,
+    "priority": 2,
+    "action": {
+      "type": "modifyHeaders",
+      "requestHeaders": [
+        { "header": "sec-fetch-dest", "operation": "set", "value": "document" },
+        { "header": "sec-fetch-mode", "operation": "set", "value": "navigate" },
+        { "header": "sec-fetch-site", "operation": "set", "value": "none" },
+        { "header": "referer", "operation": "set", "value": "https://your-url.ch/" }
+      ]
+    },
+    "condition": {
+      "urlFilter": "||your-url.ch",
+      "resourceTypes": ["main_frame", "sub_frame"]
+    }
+  }
+]

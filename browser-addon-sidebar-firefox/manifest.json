@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "Favorites Sidebar",
+  "short_name": "Favorites",
+  "description": "Open your-url.ch in sidebar",
+  "version": "1.1",
+  "icons": {
+    "48": "icon.png"
+  },
+  "action": {
+    "default_icon": {
+      "48": "icon.png"
+    },
+    "default_title": "Favorites Sidebar"
+  },
+  "sidebar_action": {
+    "default_panel": "frame.html",
+    "default_title": "Favorites Sidebar",
+    "default_icon": {
+      "48": "icon.png"
+    },
+    "open_at_install": false
+  },
+  "background": {
+    "scripts": ["background.js"]
+  },
+  "declarative_net_request": {
+    "rule_resources": [{
+      "enabled": true,
+      "id": "ruleset_1",
+      "path": "rules.json"
+    }]
+  },
+  "host_permissions": ["https://your-url.ch/*"],
+  "permissions": [
+    "declarativeNetRequest",
+    "declarativeNetRequestWithHostAccess"
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "favorites-sidebar@your-url.ch",
+      "strict_min_version": "113.0"
+    }
+  }
+}
