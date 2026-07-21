@@ -1,11 +1,7 @@
-Edit all files and replace your-url.ch with your own URL.
 
-First, log in to the Favorites Tool as usual. The session cookie will automatically be picked up in the sidebar.
+Logge dich zuerst normal im Favoriten Tool ein. Das Session Cookie wird in der Sidebar übernommen.
 
-Next, open Firefox and go to:
+Nun öffne im Firefox: about:debugging#/runtime/this-firefox
 
-about:debugging#/runtime/this-firefox
-
-There, click Load Temporary Add-on.
-
-Then select the file manifest.json.
+Dort kannst du auf Temporäres Addon Laden klicken.
+Wähle die Datei manifest.json aus.

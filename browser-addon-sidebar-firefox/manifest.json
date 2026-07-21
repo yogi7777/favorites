@@ -2,8 +2,8 @@
   "manifest_version": 3,
   "name": "Favorites Sidebar",
   "short_name": "Favorites",
-  "description": "Open your-url.ch in sidebar",
-  "version": "1.1",
+  "description": "Open favorites.itcrm.ch in sidebar",
+  "version": "1.2",
   "icons": {
     "48": "icon.png"
   },
@@ -24,22 +24,17 @@
   "background": {
     "scripts": ["background.js"]
   },
-  "declarative_net_request": {
-    "rule_resources": [{
-      "enabled": true,
-      "id": "ruleset_1",
-      "path": "rules.json"
-    }]
-  },
-  "host_permissions": ["https://your-url.ch/*"],
-  "permissions": [
-    "declarativeNetRequest",
-    "declarativeNetRequestWithHostAccess"
-  ],
   "browser_specific_settings": {
     "gecko": {
-      "id": "favorites-sidebar@your-url.ch",
-      "strict_min_version": "113.0"
+      "id": "favorites-sidebar@itcrm.ch",
+      "strict_min_version": "140.0",
+      "update_url": "https://itcrm.ch",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
+    },
+    "gecko_android": {
+      "strict_min_version": "142.0"
     }
   }
 }
