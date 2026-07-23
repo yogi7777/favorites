@@ -277,6 +277,37 @@ body {
     min-width: 180px;
     max-width: 300px;
 }
+.search-wrapper {
+    position: relative;
+    width: 100%;
+}
+.search-wrapper #search {
+    padding-right: 28px;
+}
+.search-wrapper #search::-webkit-search-cancel-button {
+    display: none;
+}
+.search-clear {
+    position: absolute;
+    top: 50%;
+    right: 6px;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    line-height: 18px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--bs-secondary-color, #adb5bd);
+    font-size: 1.1rem;
+    text-align: center;
+    cursor: pointer;
+}
+.search-clear:hover {
+    color: var(--bs-body-color, #fff);
+    background: rgba(255, 255, 255, 0.1);
+}
 .cat-edit {
     column-count: 1 !important;
 }

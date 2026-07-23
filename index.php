@@ -194,7 +194,10 @@ if ($activeTabSlug === 'alle') {
                     <?php endforeach; ?>
                 </ul>
                 <form class="d-flex" id="searchForm">
-                    <input class="form-control" type="search" id="search" placeholder="🔍 Favorites" aria-label="Search">
+                    <div class="search-wrapper">
+                        <input class="form-control" type="search" id="search" placeholder="🔍 Favorites" aria-label="Search">
+                        <button type="button" id="searchClear" class="search-clear d-none" aria-label="Suche zurücksetzen" tabindex="-1">&times;</button>
+                    </div>
                 </form>
             </div>
         </div>

@@ -234,7 +234,10 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
                     <?php endforeach; ?>
                 </ul>
                 <form class="d-flex" id="searchForm">
-                    <input class="form-control" type="search" id="search" placeholder="🔍 Categories" aria-label="Search">
+                    <div class="search-wrapper">
+                        <input class="form-control" type="search" id="search" placeholder="🔍 Categories" aria-label="Search">
+                        <button type="button" id="searchClear" class="search-clear d-none" aria-label="Suche zurücksetzen" tabindex="-1">&times;</button>
+                    </div>
                 </form>
             </div>
         </div>

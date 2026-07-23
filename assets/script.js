@@ -530,10 +530,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('search');
     const searchResults = document.getElementById('searchResults');
     const categoriesContainer = document.getElementById('categories');
+    const searchClear = document.getElementById('searchClear');
+
+    if (searchClear) {
+        searchClear.addEventListener('click', () => {
+            searchInput.value = '';
+            searchInput.dispatchEvent(new Event('input'));
+            searchInput.focus();
+        });
+    }
 
     if (searchInput) {
         searchInput.addEventListener('input', () => {
             const query = searchInput.value.toLowerCase().trim();
+
+            if (searchClear) {
+                searchClear.classList.toggle('d-none', query === '');
+            }
 
             // Suchfeld leer → alles zurücksetzen
             if (query === '') {
