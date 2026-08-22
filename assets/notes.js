@@ -83,10 +83,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const tabSlug = container.dataset.tabSlug || 'alle';
     const tabId = container.dataset.tabId || '';
     const isEdit = document.body.classList.contains('edit-mode');
+    const isSidebarMode = document.body.classList.contains('sidebar-mode');
     const hasStoredPositions = hasStoredCanvasPositions(container);
 
-    if (tabSlug === 'alle' && container.classList.contains('all-grid')) {
+    if (!isSidebarMode && tabSlug === 'alle' && container.classList.contains('all-grid')) {
         initAllGridMasonry(container);
+    } else if (isSidebarMode && container.classList.contains('all-grid')) {
+        container.querySelectorAll(':scope > .category, :scope > .note-tile').forEach((tile) => {
+            tile.style.gridRowEnd = 'auto';
+        });
     }
 
     if (window.innerWidth >= 992 && tabSlug !== 'alle' && hasStoredPositions) {
@@ -140,6 +145,16 @@ function initAllGridMasonry(container) {
 
     queueRelayout();
     window.addEventListener('resize', queueRelayout);
+    window.addEventListener('pageshow', queueRelayout);
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            queueRelayout();
+        }
+    });
+
+    if (document.fonts && typeof document.fonts.ready?.then === 'function') {
+        document.fonts.ready.then(queueRelayout).catch(() => {});
+    }
 
     container.querySelectorAll('img').forEach((img) => {
         if (!img.complete) {

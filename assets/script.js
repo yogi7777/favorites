@@ -1,4 +1,32 @@
 document.addEventListener('DOMContentLoaded', () => {
+    function isLikelyFirefoxDesktopSidebar() {
+        const ua = navigator.userAgent || '';
+        const isFirefox = /Firefox\//i.test(ua);
+        const isMobileOs = /Android|iPhone|iPad|iPod/i.test(ua);
+        const hasFinePointer = window.matchMedia('(pointer: fine)').matches;
+        const canHover = window.matchMedia('(hover: hover)').matches;
+        const screenWidth = (window.screen && window.screen.width) ? window.screen.width : window.innerWidth;
+        const isNarrowViewport = window.innerWidth <= 520;
+        const isWideDesktopScreen = screenWidth >= 1000;
+        const widthRatio = window.innerWidth / Math.max(screenWidth, 1);
+        const looksLikeSidebarPanel = widthRatio <= 0.55;
+
+        return isFirefox && !isMobileOs && hasFinePointer && canHover && isNarrowViewport && isWideDesktopScreen && looksLikeSidebarPanel;
+    }
+
+    const sidebarModeParam = new URLSearchParams(window.location.search).get('sidebar');
+    if (sidebarModeParam === '1') {
+        sessionStorage.setItem('favorites-sidebar-mode', '1');
+    } else if (sidebarModeParam === '0') {
+        sessionStorage.removeItem('favorites-sidebar-mode');
+    }
+
+    const forcedSidebarMode = sessionStorage.getItem('favorites-sidebar-mode') === '1';
+    const autoSidebarMode = isLikelyFirefoxDesktopSidebar();
+    if (forcedSidebarMode || autoSidebarMode) {
+        document.body.classList.add('sidebar-mode');
+    }
+
     const uiZoomStorageKey = 'favorites-ui-zoom';
     const uiZoomDefault = 100;
     const uiZoomMin = 70;
@@ -21,8 +49,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const zoomRange = document.getElementById('uiZoomRange');
     const zoomValue = document.getElementById('uiZoomValue');
     const zoomReset = document.getElementById('uiZoomReset');
+    const sidebarRefreshBtn = document.getElementById('sidebarRefreshBtn');
     const storedZoom = normalizeUiZoom(localStorage.getItem(uiZoomStorageKey));
     const initialZoom = applyUiZoom(storedZoom);
+
+    if (sidebarRefreshBtn) {
+        sidebarRefreshBtn.addEventListener('click', () => {
+            const url = new URL(window.location.href);
+            url.searchParams.set('_r', String(Date.now()));
+            window.location.replace(url.toString());
+        });
+    }
 
     if (zoomRange) {
         zoomRange.value = String(initialZoom);

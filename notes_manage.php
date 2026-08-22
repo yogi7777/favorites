@@ -198,6 +198,11 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
                             </a>
                         </li>
                     <?php endforeach; ?>
+                    <li class="nav-item">
+                        <button type="button" id="sidebarRefreshBtn" class="nav-link top-tab-link top-refresh-btn" title="Ansicht neu laden" aria-label="Ansicht neu laden">
+                            <span class="tab-icon">↻</span>
+                        </button>
+                    </li>
                 </ul>
                 <form class="d-flex" id="searchForm">
                     <input class="form-control" type="search" id="search" placeholder="🔍 Notes" aria-label="Search">

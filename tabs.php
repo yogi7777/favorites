@@ -124,6 +124,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </a>
                         </li>
                     <?php endforeach; ?>
+                    <li class="nav-item">
+                        <button type="button" id="sidebarRefreshBtn" class="nav-link top-tab-link top-refresh-btn" title="Ansicht neu laden" aria-label="Ansicht neu laden">
+                            <span class="tab-icon">↻</span>
+                        </button>
+                    </li>
                 </ul>
             </div>
         </div>

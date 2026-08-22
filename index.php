@@ -192,6 +192,11 @@ if ($activeTabSlug === 'alle') {
                             </a>
                         </li>
                     <?php endforeach; ?>
+                    <li class="nav-item">
+                        <button type="button" id="sidebarRefreshBtn" class="nav-link top-tab-link top-refresh-btn" title="Ansicht neu laden" aria-label="Ansicht neu laden">
+                            <span class="tab-icon">↻</span>
+                        </button>
+                    </li>
                 </ul>
                 <form class="d-flex" id="searchForm">
                     <div class="search-wrapper">
