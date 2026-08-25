@@ -1,0 +1,12 @@
+DirectoryIndex index.php
+
+<IfModule mod_authz_core.c>
+    <Files "_init.php">
+        Require all denied
+    </Files>
+</IfModule>
+<IfModule !mod_authz_core.c>
+    <Files "_init.php">
+        Deny from all
+    </Files>
+</IfModule>

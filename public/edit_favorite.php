@@ -1,7 +1,6 @@
 <?php
-require_once 'config.php';
-require_once 'auth.php';
-require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/_init.php';
+require_once APP_ROOT . '/src/app.php';
 checkAuth();
 verifyCsrfRequest();
 
@@ -95,8 +94,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($new_favicon_path && $old_favicon && !str_starts_with($old_favicon, 'http')) {
             $old_file = ltrim($old_favicon, '/');
             if ($old_file !== $new_favicon_path) {
-                $old_file_path = __DIR__ . '/' . $old_file;
-                if (file_exists($old_file_path)) {
+                $old_file_path = favorites_local_favicon_file($old_file);
+                if ($old_file_path && file_exists($old_file_path)) {
                     @unlink($old_file_path);
                 }
             }

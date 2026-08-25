@@ -21,18 +21,53 @@
 - **MySQL**: Version 5.7 or higher, or MariaDB 11.3 or higher
 - **Web Server**: Apache or Nginx
 - **Browser**: JavaScript must be enabled
-- **Folder Permissions**: `favicons/` folder in the root directory must exist and be writable (chmod 755)
+- **Folder Permissions**: `public/favicons/` must exist and be writable by the web server (chmod 755). During first setup, `src/config.php` must be writable as well.
+
+Only `public/` is the web document root. Application code (`src/`, `bin/`, `sql/`) and SQL dumps (`backup/`) live next to it, outside HTTP reach.
+
+```
+favorites/                  ← app root (not the document root)
+├── public/                 ← document root (Hostpoint: favorites.example.com)
+│   ├── index.php
+│   ├── assets/
+│   └── favicons/
+├── src/                    ← PHP includes, config
+├── bin/backup.php          ← CLI only
+├── sql/
+└── backup/                 ← SQL dumps (7 days)
+```
+
+The app finds its root automatically: `FAVORITES_ROOT` if set, otherwise the parent of `public/`, otherwise the sibling folder `favorites` (Hostpoint layout).
 
 ## Manual Installation (Webhost / LXC / VM)
 
 Use this method if you already have a LAMP/LEMP stack running — e.g. a shared webhost, a Proxmox LXC container, or any VM with Apache/Nginx + PHP + MySQL.
 
-**1. Copy the files to your webroot**
+**1. Clone the app outside the public vhost folder**
 
-Either upload the files via FTP/SFTP, or clone the repository directly on the server:
+The repository root is **not** the document root. Example on Hostpoint (`~/www/favorites` = app, `~/www/favorites.example.com` = public vhost):
 
 ```bash
-git clone https://github.com/yogi7777/favorites.git /var/www/html
+git clone https://github.com/yogi7777/favorites.git ~/www/favorites
+```
+
+Point the vhost document root at `favorites/public`, **or** symlink the vhost folder:
+
+```bash
+# Hostpoint: domain folder is the document root
+ln -sfn ../favorites/public ~/www/favorites.example.com
+```
+
+If the host does not allow replacing the domain folder with a symlink, copy or rsync `public/` into the vhost folder. `public/_init.php` then finds the sibling app directory `favorites/`.
+
+VPS / LXC with Nginx or Apache — set the document root explicitly:
+
+```nginx
+root /var/www/favorites/public;
+```
+
+```apache
+DocumentRoot /var/www/favorites/public
 ```
 
 **2. Create a MySQL user (and optionally the database)**
@@ -51,10 +86,11 @@ FLUSH PRIVILEGES;
 
 **3. Set folder permissions**
 
-The `favicons/` folder must be writable by the web server:
+The public favicon folder must be writable by the web server. During setup, `src/` must be writable so `config.php` can be created:
 
 ```bash
-chmod 755 /var/www/html/favorites/favicons
+chmod 755 ~/www/favorites/public/favicons
+chmod 775 ~/www/favorites/src ~/www/favorites/backup
 ```
 
 **4. Run the setup wizard**
@@ -62,31 +98,31 @@ chmod 755 /var/www/html/favorites/favicons
 Open your browser and navigate to:
 
 ```
-https://yourdomain.com/favorites/setup.php
+https://favorites.example.com/setup.php
 ```
 
 Enter your database credentials, create an admin account and finish the setup.
-The wizard writes `config.php` and creates all required tables automatically.
+The wizard writes `src/config.local.php` (outside the document root, gitignored) and creates all required tables automatically.
 
 **5. Log in**
 
 ```
-https://yourdomain.com/favorites/
+https://favorites.example.com/
 ```
 
-> **Note:** `setup.php` is locked after the first run (`.setup_complete` marker file). To re-run it, delete that marker file.
+> **Note:** Setup is locked after the first run (`setup_completed` in `system_settings`). To re-run it, reset that flag in the database.
 
 **6. Daily database backup (keep 7 days)**
 
-Dumps are written **outside the public webroot** into the sibling folder `backup/` (e.g. `/var/www/backup` if the app lives in `/var/www/html`). Older dumps are deleted automatically; only the last 7 days are kept.
+Dumps are written to `backup/` **inside the app directory**, not inside `public/` (e.g. `~/www/favorites/backup`). Older dumps are deleted automatically; only the last 7 days are kept.
 
 Add a cron job (Hostpoint / system crontab), e.g. 02:15 every night:
 
 ```bash
-15 2 * * * php /var/www/html/backup.php
+15 2 * * * php ~/www/favorites/bin/backup.php
 ```
 
-The script is CLI-only. Use `php backup.php --force` to overwrite today's dump.
+The script is CLI-only. Use `php bin/backup.php --force` to overwrite today's dump.
 
 ---
 
@@ -100,7 +136,7 @@ The stack starts three containers:
 | `favorites-app` | PHP-FPM 8.3 Alpine | App runtime (`pdo_mysql` + `curl`) |
 | `favorites-web` | Nginx 1.27 Alpine | Web server, port 8080 by default |
 | `favorites-db` | MariaDB 11.4 | Database, data persisted in a named volume |
-| `favorites-backup` | PHP-FPM 8.3 Alpine | Daily SQL dump into `./backup` (last 7 days) |
+| `favorites-backup` | PHP-FPM 8.3 Alpine | Daily SQL dump into `./backup` inside the app (last 7 days) |
 
 ### Prerequisites
 
@@ -163,7 +199,7 @@ The form is pre-filled with the Docker defaults — just click through, create y
 http://localhost:8080/
 ```
 
-SQL dumps are written to `./backup` on the host (mounted **outside** the nginx webroot as `/var/www/backup`). The backup container runs `backup.php` on start and then once per day, keeping the last 7 dumps. Nginx blocks HTTP access to `/backup/` and `/backup.php`.
+Nginx serves only `public/`. SQL dumps are written to `./backup` on the host (`/var/www/favorites/backup` in the container). The backup container runs `bin/backup.php` on start and then once per day, keeping the last 7 dumps.
 
 **6. Update Repository**
 > **Note:** Whitout delete the Database.

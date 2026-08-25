@@ -1,7 +1,7 @@
 <?php
-require_once 'config.php';
-require_once 'auth.php';
-require_once 'import-export.php';
+require_once __DIR__ . '/_init.php';
+require_once APP_ROOT . '/src/app.php';
+require_once APP_ROOT . '/src/import-export.php';
 checkAuth();
 verifyCsrfRequest();
 
@@ -19,8 +19,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 foreach ($favicons as $favicon) {
                     if (!empty($favicon['favicon_url']) && !str_starts_with($favicon['favicon_url'], 'http')) {
-                        $file_path = __DIR__ . '/' . ltrim($favicon['favicon_url'], '/');
-                        if (file_exists($file_path)) {
+                        $file_path = favorites_local_favicon_file($favicon['favicon_url']);
+                        if ($file_path && file_exists($file_path)) {
                             unlink($file_path);
                         }
                     }
@@ -380,7 +380,7 @@ $devices = getTrustedDevices($user_id);
         </div>
     </div>
 
-    <?php include 'navigation.php'; ?>
+    <?php include APP_ROOT . '/src/navigation.php'; ?>
 
     <script src="assets/src/bootstrap.bundle.min.js"></script>
     <script src="assets/script.js?v1.5"></script>

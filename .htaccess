@@ -1,0 +1,9 @@
+# Fallback if the document root is wrongly set to the app root
+# instead of public/. Apache / Hostpoint only.
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(src|bin|sql|backup)(/|$) - [F]
+    RewriteRule ^$ public/ [L]
+    RewriteRule ^((?!public/).*)$ public/$1 [L]
+</IfModule>

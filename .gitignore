@@ -1,6 +1,7 @@
 favicon_converted/
 .setup_complete
 .env
+src/config.local.php
 backup/*.sql
 backup/*.sql.gz
 backup/*.tmp
