@@ -140,6 +140,7 @@ if ($activeTabSlug === 'alle') {
     <meta name="author" content="yogi7777">
     <title>Favorites</title>
     <link href="assets/src/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link href="assets/style.css?v1.4" rel="stylesheet">
 </head>
 <body data-bs-theme="dark"<?php if ($mode === 'edit'): ?> class="edit-mode"<?php endif; ?>>
@@ -233,7 +234,7 @@ if ($activeTabSlug === 'alle') {
                                 <div class="card-header">
                                     <h5 class="card-title"><?php echo htmlspecialchars($category['name']); ?></h5>
                                     <button class="btn cat-inline-edit-btn cat-open-all-btn" title="Open all links">⧉</button>
-                                    <button class="btn cat-inline-edit-btn" title="Edit favorites">✏</button>
+                                    <button class="btn cat-inline-edit-btn" title="Edit favorites" aria-label="Edit favorites"><i class="bi bi-pencil-square" aria-hidden="true"></i></button>
                                 </div>
                                 <div class="card-body">
                                     <?php $favoritesInCategory = $favoritesByCategory[(int)$category['id']] ?? []; ?>
@@ -244,7 +245,7 @@ if ($activeTabSlug === 'alle') {
                                                 <?php echo htmlspecialchars($favorite['title']); ?>
                                             </a>
                                             <div class="inline-fav-btns ms-auto">
-                                                <button class="btn btn-sm edit-favorite" title="Edit">✏</button>
+                                                <button class="btn btn-sm edit-favorite" title="Edit" aria-label="Edit favorite"><i class="bi bi-pencil-square" aria-hidden="true"></i></button>
                                                 <button class="btn btn-sm delete-favorite" title="Delete">✕</button>
                                             </div>
                                         </div>
@@ -265,7 +266,7 @@ if ($activeTabSlug === 'alle') {
                     <div class="card note-card">
                         <div class="card-header">
                             <h5 class="note-header-title"><?php echo htmlspecialchars($note['title']); ?></h5>
-                            <button class="btn note-inline-edit-btn" title="Edit note">✏</button>
+                            <button class="btn note-inline-edit-btn" title="Edit note" aria-label="Edit note"><i class="bi bi-pencil-square" aria-hidden="true"></i></button>
                             <button class="btn note-inline-save-btn" title="Save note">✓</button>
                             <?php if ($mode === 'edit'): ?>
                                 <button class="btn btn-sm btn-outline-danger delete-note" title="Delete note">✕</button>

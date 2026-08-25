@@ -827,6 +827,14 @@ body.edit-mode .note-inline-save-btn { display: none; }
     cursor: pointer;
 }
 
+.cat-inline-edit-btn i,
+.note-inline-edit-btn i,
+.inline-fav-btns .edit-favorite i {
+    font-size: 0.82rem;
+    line-height: 1;
+    vertical-align: middle;
+}
+
 .cat-inline-edit-btn:hover,
 .category.inline-editing .cat-inline-edit-btn {
     opacity: 1;
