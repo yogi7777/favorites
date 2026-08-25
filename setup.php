@@ -270,6 +270,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div><?= htmlspecialchars($msg) ?></div>
         <?php endforeach ?>
     </div>
+    <p class="subtitle" style="margin-top:1.2rem">Tägliches SQL-Backup (Ordner <code>../backup</code>, behält 7 Tage):</p>
+    <input class="form-control" type="text" readonly value="15 2 * * * php <?= htmlspecialchars(__DIR__ . '/backup.php') ?>" onclick="this.select()">
     <a href="index.php" class="btn-login">→ Startseite</a>
 
     <?php else: ?>

@@ -13,9 +13,35 @@ services:
       DB_NAME: ${DB_NAME:-favorites}
     volumes:
       - ./:/var/www/html
+      - ./backup:/var/www/backup
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - favorites-net
+
+  backup:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: favorites-backup
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-Europe/Berlin}
+      DB_HOST: ${DB_HOST:-db}
+      DB_USER: ${DB_USER:-favorites}
+      DB_PASS: ${DB_PASS:-favorites}
+      DB_NAME: ${DB_NAME:-favorites}
+    volumes:
+      - ./:/var/www/html:ro
+      - ./backup:/var/www/backup
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint:
+      - /bin/sh
+      - -c
+      - while true; do php /var/www/html/backup.php || true; sleep 86400; done
     networks:
       - favorites-net
 

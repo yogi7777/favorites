@@ -1,3 +1,7 @@
 favicon_converted/
 .setup_complete
 .env
+backup/*.sql
+backup/*.sql.gz
+backup/*.tmp
+backup/.dump.lock

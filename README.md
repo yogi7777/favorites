@@ -76,6 +76,18 @@ https://yourdomain.com/favorites/
 
 > **Note:** `setup.php` is locked after the first run (`.setup_complete` marker file). To re-run it, delete that marker file.
 
+**6. Daily database backup (keep 7 days)**
+
+Dumps are written **outside the public webroot** into the sibling folder `backup/` (e.g. `/var/www/backup` if the app lives in `/var/www/html`). Older dumps are deleted automatically; only the last 7 days are kept.
+
+Add a cron job (Hostpoint / system crontab), e.g. 02:15 every night:
+
+```bash
+15 2 * * * php /var/www/html/backup.php
+```
+
+The script is CLI-only. Use `php backup.php --force` to overwrite today's dump.
+
 ---
 
 ## Docker (Recommended for Easy Setup)
@@ -88,6 +100,7 @@ The stack starts three containers:
 | `favorites-app` | PHP-FPM 8.3 Alpine | App runtime (`pdo_mysql` + `curl`) |
 | `favorites-web` | Nginx 1.27 Alpine | Web server, port 8080 by default |
 | `favorites-db` | MariaDB 11.4 | Database, data persisted in a named volume |
+| `favorites-backup` | PHP-FPM 8.3 Alpine | Daily SQL dump into `./backup` (last 7 days) |
 
 ### Prerequisites
 
@@ -149,6 +162,8 @@ The form is pre-filled with the Docker defaults — just click through, create y
 ```
 http://localhost:8080/
 ```
+
+SQL dumps are written to `./backup` on the host (mounted **outside** the nginx webroot as `/var/www/backup`). The backup container runs `backup.php` on start and then once per day, keeping the last 7 dumps. Nginx blocks HTTP access to `/backup/` and `/backup.php`.
 
 **6. Update Repository**
 > **Note:** Whitout delete the Database.
