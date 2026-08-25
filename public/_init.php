@@ -133,8 +133,8 @@ function favorites_setup_diagnostics(): array
         $rows['DB_HOST'] = defined('DB_HOST') ? (string) DB_HOST : '(nicht gesetzt)';
         $rows['DB_USER'] = defined('DB_USER') ? (string) DB_USER : '(nicht gesetzt)';
         $rows['DB_NAME'] = defined('DB_NAME') ? (string) DB_NAME : '(nicht gesetzt)';
-        global $pdo;
-        if (isset($pdo) && $pdo instanceof PDO) {
+        $pdo = $GLOBALS['pdo'] ?? null;
+        if ($pdo instanceof PDO) {
             $rows['PDO'] = 'verbunden';
             try {
                 $stmt = $pdo->query("SELECT `value` FROM system_settings WHERE `key` = 'setup_completed' LIMIT 1");
@@ -188,8 +188,8 @@ function favorites_is_setup_completed(): bool
 
     try {
         require_once APP_ROOT . '/src/bootstrap.php';
-        global $pdo;
-        if (!isset($pdo) || !($pdo instanceof PDO)) {
+        $pdo = $GLOBALS['pdo'] ?? null;
+        if (!$pdo instanceof PDO) {
             return false;
         }
 

@@ -9,6 +9,9 @@ if (!defined('APP_ROOT')) {
     define('APP_ROOT', dirname(__DIR__));
 }
 
+// bootstrap.php wird auch aus Funktionen included; $pdo muss global bleiben.
+global $pdo;
+
 function favorites_load_env(string $file): void
 {
     if (!is_file($file) || !is_readable($file)) {
@@ -94,9 +97,13 @@ if (!defined('SQL_DIR')) {
     define('SQL_DIR', APP_ROOT . '/sql');
 }
 
-if (!isset($pdo)) {
+if (isset($pdo) && $pdo instanceof PDO) {
+    $GLOBALS['pdo'] = $pdo;
+}
+
+if (!isset($GLOBALS['pdo']) || !($GLOBALS['pdo'] instanceof PDO)) {
     try {
-        $pdo = new PDO(
+        $GLOBALS['pdo'] = new PDO(
             'mysql:host=' . DB_HOST . ';dbname=' . DB_NAME . ';charset=utf8mb4',
             DB_USER,
             (string) DB_PASS,
@@ -109,5 +116,6 @@ if (!isset($pdo)) {
         die('Datenbankverbindung fehlgeschlagen: ' . $e->getMessage());
     }
 }
+$pdo = $GLOBALS['pdo'];
 
 require_once APP_ROOT . '/src/functions.php';
