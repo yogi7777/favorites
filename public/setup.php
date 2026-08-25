@@ -229,6 +229,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         a.btn-login { display: block; text-align: center; background: #e94560; color: #fff; border-radius: 8px; padding: .7rem; text-decoration: none; font-size: 1rem; margin-top: 1rem; }
         a.btn-login:hover { background: #c73652; color: #fff; }
         .config-hint { background: rgba(255,193,7,.08); border: 1px solid rgba(255,193,7,.3); border-radius: 8px; padding: .75rem 1rem; color: #ffc107; font-size: .85rem; margin-bottom: 1rem; }
+        .diag { background: #0d1b2a; border: 1px solid #0f3460; border-radius: 8px; padding: .75rem 1rem; color: #b0b0c8; font-size: .75rem; margin: 1rem 0; font-family: ui-monospace, monospace; }
+        .diag dt { color: #8a8a9a; margin-top: .35rem; }
+        .diag dd { margin: 0; color: #e0e0e0; word-break: break-all; }
     </style>
 </head>
 <body>
@@ -255,9 +258,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <?php if (!is_file(APP_ROOT . '/src/config.local.php') && !is_file(APP_ROOT . '/.env')): ?>
     <div class="config-hint">
-        ℹ️ <strong>config.php fehlt noch.</strong> Das Setup erstellt sie automatisch aus deinen Angaben unten.
+        ℹ️ <strong>src/config.local.php fehlt.</strong> Entweder hier das Formular ausfüllen oder die Datei mit den DB-Zugangsdaten unter <code><?= htmlspecialchars(APP_ROOT . '/src/config.local.php') ?></code> anlegen.
     </div>
     <?php endif ?>
+
+    <dl class="diag">
+        <div style="color:#e94560;margin-bottom:.4rem">Diagnose – warum Setup statt Login?</div>
+        <?php foreach (favorites_setup_diagnostics() as $label => $value): ?>
+            <dt><?= htmlspecialchars($label) ?></dt>
+            <dd><?= htmlspecialchars($value) ?></dd>
+        <?php endforeach ?>
+    </dl>
 
     <?php if (!empty($errors)): ?>
     <div class="alert-setup-error mb-3">

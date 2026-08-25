@@ -44,12 +44,14 @@ function favorites_load_env(string $file): void
 
 favorites_load_env(APP_ROOT . '/.env');
 
-$localConfig = APP_ROOT . '/src/config.local.php';
-$defaultConfig = APP_ROOT . '/src/config.php';
-if (is_file($localConfig)) {
-    require_once $localConfig;
-} elseif (is_file($defaultConfig)) {
-    require_once $defaultConfig;
+$configFile = function_exists('favorites_locate_config')
+    ? favorites_locate_config()
+    : (is_file(APP_ROOT . '/src/config.local.php')
+        ? APP_ROOT . '/src/config.local.php'
+        : (is_file(APP_ROOT . '/src/config.php') ? APP_ROOT . '/src/config.php' : null));
+
+if (is_string($configFile) && is_file($configFile)) {
+    require_once $configFile;
 }
 
 if (!defined('DB_HOST')) {
