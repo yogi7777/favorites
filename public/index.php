@@ -1,42 +1,12 @@
 <?php
-// Setup-Prüfung: Weiterleitung wenn Erst-Einrichtung noch aussteht
-$setupCompleted = false;
+require_once __DIR__ . '/_init.php';
 
-if (file_exists(__DIR__ . '/config.php') || file_exists(__DIR__ . '/.env')) {
-    try {
-        // Versuche, die DB-Verbindung zu laden (über config.php oder env)
-        if (file_exists(__DIR__ . '/config.php')) {
-            require_once __DIR__ . '/config.php';
-        } elseif (file_exists(__DIR__ . '/.env')) {
-            // Hier deine loadEnv-Funktion aufrufen, falls du sie hast
-        }
-
-        if (defined('DB_HOST') && defined('DB_NAME')) {
-            $pdoCheck = new PDO(
-                "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
-                DB_USER ?? getenv('DB_USER'),
-                DB_PASS ?? getenv('DB_PASS'),
-                [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
-            );
-
-            $stmt = $pdoCheck->query("SELECT `value` FROM system_settings WHERE `key` = 'setup_completed' LIMIT 1");
-            if ($stmt && $stmt->fetchColumn() === '1') {
-                $setupCompleted = true;
-            }
-        }
-    } catch (Exception $e) {
-        // Stille Fehler – falls DB noch nicht existiert, Setup erlauben
-    }
-}
-
-if (!$setupCompleted) {
+if (!favorites_is_setup_completed()) {
     header('Location: setup.php');
     exit;
 }
 
-require_once 'config.php';
-require_once 'auth.php';
-require_once 'functions.php';
+require_once APP_ROOT . '/src/app.php';
 checkAuth();
 
 $userId = (int)$_SESSION['user_id'];
@@ -509,7 +479,7 @@ if ($activeTabSlug === 'alle') {
     </div>
     <?php endif; ?>
 
-    <?php include 'navigation.php'; ?>
+    <?php include APP_ROOT . '/src/navigation.php'; ?>
 
     <script>
         window.favSearchData = <?= json_encode($searchData, JSON_HEX_TAG | JSON_HEX_AMP) ?>;

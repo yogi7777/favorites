@@ -1,7 +1,6 @@
 <?php
-require_once 'config.php';
-require_once 'auth.php';
-require_once 'functions.php';
+require_once __DIR__ . '/_init.php';
+require_once APP_ROOT . '/src/app.php';
 checkAuth();
 verifyCsrfRequest();
 
@@ -349,7 +348,7 @@ foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
         </div>
     </div>
 
-    <?php include 'navigation.php'; ?>
+    <?php include APP_ROOT . '/src/navigation.php'; ?>
     <script src="assets/src/bootstrap.bundle.min.js"></script>
     <script src="assets/script.js?v1.5"></script>
     <script>

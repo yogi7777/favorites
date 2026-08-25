@@ -1,7 +1,8 @@
 <?php
 header('Content-Type: application/json');
 
-require_once 'auth.php';
+require_once __DIR__ . '/_init.php';
+require_once APP_ROOT . '/src/app.php';
 checkAuth();
 
 $url = $_GET['url'] ?? '';

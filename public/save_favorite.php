@@ -1,7 +1,6 @@
 <?php
-require_once 'config.php';
-require_once 'auth.php';
-require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/_init.php';
+require_once APP_ROOT . '/src/app.php';
 checkAuth();
 verifyCsrfRequest();
 

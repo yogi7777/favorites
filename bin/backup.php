@@ -1,14 +1,14 @@
 #!/usr/bin/env php
 <?php
 /**
- * CLI: MariaDB dump into ../backup (outside the webroot), keep last 7 days.
+ * CLI: MariaDB dump into APP_ROOT/backup (outside the public webroot), keep last 7 days.
  *
  * Cron (once per night), e.g. 02:15:
- *   php /path/to/favorites/backup.php
+ *   php /path/to/favorites/bin/backup.php
  *
  * Usage:
- *   php backup.php
- *   php backup.php --force
+ *   php bin/backup.php
+ *   php bin/backup.php --force
  *
  * One dump per calendar day. Existing today's file is skipped unless --force.
  * HTTP access is denied.
@@ -34,13 +34,34 @@ if (PHP_SAPI !== 'cli') {
     exit(1);
 }
 
-$configPath = __DIR__ . '/config.php';
-if (!is_file($configPath)) {
-    fwrite(STDERR, "No config.php – run the web installer first.\n");
+$envRoot = getenv('FAVORITES_ROOT');
+$candidates = [];
+if (is_string($envRoot) && $envRoot !== '') {
+    $candidates[] = rtrim($envRoot, "/\\");
+}
+$candidates[] = dirname(__DIR__);
+
+$appRoot = null;
+foreach ($candidates as $candidate) {
+    if (is_file($candidate . '/src/bootstrap.php')) {
+        $appRoot = $candidate;
+        break;
+    }
+}
+if ($appRoot === null) {
+    fwrite(STDERR, "Application root not found. Set FAVORITES_ROOT.\n");
     exit(1);
 }
+if (!defined('APP_ROOT')) {
+    define('APP_ROOT', $appRoot);
+}
 
-require $configPath;
+try {
+    require APP_ROOT . '/src/bootstrap.php';
+} catch (Throwable $e) {
+    fwrite(STDERR, "Cannot load application config: " . $e->getMessage() . "\n");
+    exit(1);
+}
 
 if (!defined('DB_HOST') || !defined('DB_USER') || !defined('DB_NAME')) {
     fwrite(STDERR, "Database configuration is incomplete.\n");
@@ -48,12 +69,21 @@ if (!defined('DB_HOST') || !defined('DB_USER') || !defined('DB_NAME')) {
 }
 
 /**
- * Dumps live next to the public/webroot folder, not inside it.
- * Docker bind-mounts ./backup → /var/www/backup.
+ * Dumps live in APP_ROOT/backup (outside the public webroot).
+ * Override with FAVORITES_BACKUP_DIR if needed.
  */
 function favorites_backup_dir(): string
 {
-    return dirname(__DIR__) . '/backup';
+    if (defined('BACKUP_DIR') && BACKUP_DIR !== '') {
+        return BACKUP_DIR;
+    }
+
+    $env = getenv('FAVORITES_BACKUP_DIR');
+    if (is_string($env) && $env !== '') {
+        return rtrim($env, "/\\");
+    }
+
+    return APP_ROOT . '/backup';
 }
 
 function favorites_backup_prefix(): string

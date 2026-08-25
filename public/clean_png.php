@@ -1,11 +1,11 @@
 <?php
-require_once 'config.php';
-require_once 'auth.php';
+require_once __DIR__ . '/_init.php';
+require_once APP_ROOT . '/src/app.php';
 checkAuth();
 verifyCsrfRequest();
 
 // Verzeichnis mit den Favicons
-$faviconsDir = __DIR__ . '/favicons/';
+$faviconsDir = FAVICONS_DIR . '/';
 
 // Alle Dateien im Favicons-Ordner holen (alle Typen)
 $files = file_exists($faviconsDir) ? glob($faviconsDir . '*') : [];
@@ -67,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
                 <div class="row">
                     <?php foreach ($orphanedFiles as $file): ?>
                         <div class="col-auto mb-3">
-                            <img src="<?php echo htmlspecialchars(ltrim(str_replace(__DIR__, '', $file), '/')); ?>"
+                            <img src="<?php echo htmlspecialchars('favicons/' . basename($file)); ?>"
                                 alt="Favicon" 
                                 width="32" 
                                 height="32" 
@@ -85,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
         </div>
     </div>
 
-        <?php include 'navigation.php'; ?>
+        <?php include APP_ROOT . '/src/navigation.php'; ?>
 
     <script src="assets/src/bootstrap.bundle.min.js"></script>
     <script src="assets/script.js?v1.5"></script>

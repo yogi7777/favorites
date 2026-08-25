@@ -93,6 +93,27 @@ function resolveActiveTab(array $tabs, string $requested): array {
 }
 
 /**
+ * Absolute filesystem path inside the public document root.
+ */
+function favorites_public_file(string $relative): string {
+    $relative = ltrim($relative, '/');
+    $base = defined('PUBLIC_DIR') ? PUBLIC_DIR : (defined('APP_ROOT') ? APP_ROOT . '/public' : '');
+
+    return $base . '/' . $relative;
+}
+
+/**
+ * Local favicon file path, or null for empty / remote URLs.
+ */
+function favorites_local_favicon_file(?string $storedPath): ?string {
+    if ($storedPath === null || $storedPath === '' || str_starts_with($storedPath, 'http://') || str_starts_with($storedPath, 'https://')) {
+        return null;
+    }
+
+    return favorites_public_file($storedPath);
+}
+
+/**
  * Normalisiert einen Favicon-Pfad auf einen relativen Pfad
  * Externe URLs werden unverändert zurückgegeben, lokale Pfade werden relativ gemacht.
  *
@@ -159,14 +180,14 @@ function saveFaviconFile(array $result, int $id): ?string {
     elseif (str_contains($result['type'], 'gif'))  $ext = '.gif';
     elseif (str_contains($result['type'], 'svg'))  $ext = '.svg';
 
-    $favDir = __DIR__ . '/favicons';
+    $favDir = defined('FAVICONS_DIR') ? FAVICONS_DIR : favorites_public_file('favicons');
     if (!file_exists($favDir) && !mkdir($favDir, 0755, true)) {
         error_log("saveFaviconFile ($id): Verzeichnis konnte nicht erstellt werden");
         return null;
     }
 
     $path  = 'favicons/favicon_' . $id . $ext;
-    $bytes = @file_put_contents(__DIR__ . '/' . $path, $result['data']);
+    $bytes = @file_put_contents($favDir . '/' . basename($path), $result['data']);
     if (!$bytes) {
         error_log("saveFaviconFile ($id): Schreiben fehlgeschlagen: $path");
         return null;

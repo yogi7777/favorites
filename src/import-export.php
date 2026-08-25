@@ -234,7 +234,7 @@ function refreshAllUserFavicons($user_id, $pdo) {
  * Löscht Favicon-Dateien im /favicons/ Ordner, die nicht mehr in der Datenbank referenziert sind.
  */
 function cleanupOrphanedFavicons($pdo): array {
-    $dir = __DIR__ . '/favicons/';
+    $dir = (defined('FAVICONS_DIR') ? FAVICONS_DIR : favorites_public_file('favicons')) . '/';
     if (!is_dir($dir)) {
         return ['deleted' => 0];
     }

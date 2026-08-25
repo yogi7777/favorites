@@ -3,45 +3,16 @@
  * setup.php – Installations-Assistent
  *
  * Führt beim ersten Aufruf durch die Einrichtung:
- *   1. Datenbankzugangsdaten eingeben → config.php wird erstellt
+ *   1. Datenbankzugangsdaten eingeben → src/config.local.php wird erstellt
  *   2. Admin-Account erstellen
- *   3. Datenbank + Tabellen anlegen (DB_Script.sql)
+ *   3. Datenbank + Tabellen anlegen (sql/DB_Script.sql)
  *
- * Nach erfolgreichem Setup wird .setup_complete erstellt,
- * das erneute Aufrufen des Setups wird dann verhindert.
+ * Nach erfolgreichem Setup wird das Flag in system_settings gesetzt.
  */
 
-// Bereits eingerichtet → direkt zur Login-Seite
-$setupCompleted = false;
+require_once __DIR__ . '/_init.php';
 
-if (file_exists(__DIR__ . '/config.php') || file_exists(__DIR__ . '/.env')) {
-    try {
-        // Versuche, die DB-Verbindung zu laden (über config.php oder env)
-        if (file_exists(__DIR__ . '/config.php')) {
-            require_once __DIR__ . '/config.php';
-        } elseif (file_exists(__DIR__ . '/.env')) {
-            // Hier deine loadEnv-Funktion aufrufen, falls du sie hast
-        }
-
-        if (defined('DB_HOST') && defined('DB_NAME')) {
-            $pdoCheck = new PDO(
-                "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
-                DB_USER ?? getenv('DB_USER'),
-                DB_PASS ?? getenv('DB_PASS'),
-                [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
-            );
-
-            $stmt = $pdoCheck->query("SELECT `value` FROM system_settings WHERE `key` = 'setup_completed' LIMIT 1");
-            if ($stmt && $stmt->fetchColumn() === '1') {
-                $setupCompleted = true;
-            }
-        }
-    } catch (Exception $e) {
-        // Stille Fehler – falls DB noch nicht existiert, Setup erlauben
-    }
-}
-
-if ($setupCompleted) {
+if (favorites_is_setup_completed()) {
     header('Location: index.php');
     exit;
 }
@@ -122,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
             );
 
-            $sqlFile = __DIR__ . '/DB_Script.sql';
+            $sqlFile = APP_ROOT . '/sql/DB_Script.sql';
             if (!is_readable($sqlFile)) {
                 throw new RuntimeException('DB_Script.sql nicht gefunden oder nicht lesbar.');
             }
@@ -172,7 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // ── Schritt 5: config.php prüfen ──────────────────────────────────────
     if (empty($errors)) {
-        $usingEnv = file_exists(__DIR__ . '/.env');
+        $usingEnv = is_file(APP_ROOT . '/.env');
 
         if ($usingEnv) {
             // Docker / .env Modus – nichts schreiben
@@ -183,24 +154,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         } 
         else {
-            // Klassischer Hosting-Modus → config.php schreiben
+            // Klassischer Hosting-Modus → src/config.php schreiben (ausserhalb des Public-Ordners)
             $cfg = '<?php' . "\n"
                 . '# Datenbankverbindung – generiert von setup.php am ' . date('Y-m-d H:i:s') . "\n\n"
-                . 'define(\'DB_HOST\', ' . var_export($db_host, true) . ");\n"
-                . 'define(\'DB_USER\', ' . var_export($db_user, true) . ");\n"
-                . 'define(\'DB_PASS\', ' . var_export($db_pass, true) . ");\n"
-                . 'define(\'DB_NAME\', ' . var_export($db_name, true) . ");\n\n"
-                . "try {\n"
-                . '    $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4", DB_USER, DB_PASS);' . "\n"
-                . '    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);' . "\n"
-                . "} catch (PDOException \$e) {\n"
-                . '    die("Datenbankverbindung fehlgeschlagen: " . $e->getMessage());' . "\n"
+                . "if (!defined('DB_HOST')) {\n"
+                . '    define(\'DB_HOST\', ' . var_export($db_host, true) . ");\n"
+                . "}\n"
+                . "if (!defined('DB_USER')) {\n"
+                . '    define(\'DB_USER\', ' . var_export($db_user, true) . ");\n"
+                . "}\n"
+                . "if (!defined('DB_PASS')) {\n"
+                . '    define(\'DB_PASS\', ' . var_export($db_pass, true) . ");\n"
+                . "}\n"
+                . "if (!defined('DB_NAME')) {\n"
+                . '    define(\'DB_NAME\', ' . var_export($db_name, true) . ");\n"
                 . "}\n";
 
-            if (file_put_contents(__DIR__ . '/config.php', $cfg) === false) {
-                $errors[] = 'config.php konnte nicht geschrieben werden (Schreibrechte prüfen).';
+            $configFile = APP_ROOT . '/src/config.local.php';
+            if (file_put_contents($configFile, $cfg) === false) {
+                $errors[] = 'src/config.local.php konnte nicht geschrieben werden (Schreibrechte auf src/ prüfen).';
             } else {
-                $info[] = '✓ config.php erstellt.';
+                $info[] = '✓ src/config.local.php erstellt.';
             }
         }
     }
@@ -270,8 +244,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div><?= htmlspecialchars($msg) ?></div>
         <?php endforeach ?>
     </div>
-    <p class="subtitle" style="margin-top:1.2rem">Tägliches SQL-Backup (Ordner <code>../backup</code>, behält 7 Tage):</p>
-    <input class="form-control" type="text" readonly value="15 2 * * * php <?= htmlspecialchars(__DIR__ . '/backup.php') ?>" onclick="this.select()">
+    <p class="subtitle" style="margin-top:1.2rem">Tägliches SQL-Backup (Ordner <code>backup/</code> im App-Verzeichnis, behält 7 Tage):</p>
+    <input class="form-control" type="text" readonly value="15 2 * * * php <?= htmlspecialchars(APP_ROOT . '/bin/backup.php') ?>" onclick="this.select()">
     <a href="index.php" class="btn-login">→ Startseite</a>
 
     <?php else: ?>
@@ -279,7 +253,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <h1>⭐ Favorites – Setup</h1>
     <p class="subtitle">Richte die App in wenigen Schritten ein.</p>
 
-    <?php if (!file_exists(__DIR__ . '/config.php') && file_exists(__DIR__ . '/config.expample.php')): ?>
+    <?php if (!is_file(APP_ROOT . '/src/config.local.php') && !is_file(APP_ROOT . '/.env')): ?>
     <div class="config-hint">
         ℹ️ <strong>config.php fehlt noch.</strong> Das Setup erstellt sie automatisch aus deinen Angaben unten.
     </div>

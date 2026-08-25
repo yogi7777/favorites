@@ -1,6 +1,6 @@
 <?php
-require_once 'config.php';
-require_once 'auth.php';
+require_once __DIR__ . '/_init.php';
+require_once APP_ROOT . '/src/app.php';
 checkAuth();
 verifyCsrfRequest();
 
@@ -19,8 +19,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Favicon-Datei löschen, falls vorhanden (nur lokale Pfade, nicht externe URLs)
     if ($favicon_path && !str_starts_with($favicon_path, 'http')) {
-        $favicon_file = __DIR__ . '/' . ltrim($favicon_path, '/');
-        if (file_exists($favicon_file)) {
+        $favicon_file = favorites_local_favicon_file($favicon_path);
+        if ($favicon_file && file_exists($favicon_file)) {
             @unlink($favicon_file);
         }
     }
